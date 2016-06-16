@@ -76,7 +76,7 @@ class Client
      */
     public function getRecord($objectType, $sfId, array $fields)
     {
-        $url      = $this->baseUrl . '/services/data/v24.0/sobjects/' . $objectType . '/' . $sfId . '?fields=' . implode(',', $fields);
+        $url      = $this->baseUrl . '/services/data/v37.0/sobjects/' . $objectType . '/' . $sfId . '?fields=' . implode(',', $fields);
         $response = $this->makeRequest('get', $url, ['headers' => ['Authorization' => $this->getAuthHeader()]]);
 
         return json_decode($response->getBody(), true);
@@ -96,7 +96,7 @@ class Client
         if ( ! empty($next_url)) {
             $url = $this->baseUrl . '/' . $next_url;
         } else {
-            $url = $this->baseUrl . '/services/data/v24.0/query/?q=' . urlencode($query);
+            $url = $this->baseUrl . '/services/data/v37.0/query/?q=' . urlencode($query);
         }
         $response = $this->makeRequest('get', $url, ['headers' => ['Authorization' => $this->getAuthHeader()]]);
         $data     = json_decode($response->getBody(), true);
@@ -123,7 +123,7 @@ class Client
      */
     public function updateRecord($object, $id, array $data)
     {
-        $url = $this->baseUrl . '/services/data/v24.0/sobjects/' . $object . '/' . $id;
+        $url = $this->baseUrl . '/services/data/v37.0/sobjects/' . $object . '/' . $id;
 
         $this->makeRequest('patch', $url, [
             'headers' => ['Content-Type' => 'application/json', 'Authorization' => $this->getAuthHeader()],
@@ -143,7 +143,7 @@ class Client
      */
     public function createRecord($object, $data)
     {
-        $url = $this->baseUrl . '/services/data/v24.0/sobjects/' . $object . '/';
+        $url = $this->baseUrl . '/services/data/v37.0/sobjects/' . $object . '/';
 
         $response     = $this->makeRequest('post', $url, [
             'headers' => ['Content-Type' => 'application/json', 'Authorization' => $this->getAuthHeader()],
@@ -164,7 +164,7 @@ class Client
      */
     public function deleteRecord($object, $id)
     {
-        $url = $this->baseUrl . '/services/data/v24.0/sobjects/' . $object . '/' . $id;
+        $url = $this->baseUrl . '/services/data/v37.0/sobjects/' . $object . '/' . $id;
 
         $this->makeRequest('delete', $url, ['headers' => ['Authorization' => $this->getAuthHeader()]]);
 
