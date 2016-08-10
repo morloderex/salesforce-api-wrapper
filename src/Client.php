@@ -67,7 +67,7 @@ class Client
      *
      * @throws \Exception
      */
-    public function login(string $user, string $password)
+    public function login($user, $password)
     {
         $res = $this->guzzleClient->post($this->clientConfig->getLoginUrl() . 'services/oauth2/token', [
             'headers'     => ['Accept' => 'application/json'],
