@@ -65,7 +65,6 @@ class Client
      * @param string $user
      * @param string $password
      *
-     * @return AccessToken
      * @throws \Exception
      */
     public function login(string $user, string $password)
