@@ -3,6 +3,8 @@
 use Crunch\Salesforce\Exceptions\RequestException;
 use GuzzleHttp\Exception\RequestException as GuzzleRequestException;
 use Crunch\Salesforce\Exceptions\AuthenticationException;
+use GuzzleHttp\Psr7\Response;
+use Psr\Http\Message\ResponseInterface;
 
 class Client
 {
@@ -67,16 +69,54 @@ class Client
     }
 
     /**
+     * Log the user using the credential if known in advance
+     *
+     * Only use when not needing the OAuth usual flow.
+     *
+     * @param string $user
+     * @param string $password
+     *
+     * @return AccessToken
+     * @throws \Exception
+     */
+    public function login(string $user, string $password)
+    {
+        $res = $this->guzzleClient->post($this->salesforceLoginUrl . 'services/oauth2/token', [
+            'headers'     => ['Accept' => 'application/json'],
+            'form_params' => [
+                'client_id'     => $this->clientId,
+                'client_secret' => $this->clientSecret,
+                'grant_type'    => 'password',
+                'username'      => $user,
+                'password'      => $password,
+            ],
+        ]);
+        if (!$this->isSuccessful($res)) {
+            throw new RequestException("Can't login", (string)$res->getBody());
+        }
+        $tokeGenerator = new AccessTokenGenerator();
+
+        $decodedJson = json_decode((string)$res->getBody(), true);
+        $this->setAccessToken($tokeGenerator->createFromSalesforceResponse($decodedJson));
+    }
+
+
+    /**
      * Fetch a specific object
      *
      * @param string $objectType
      * @param string $sfId
      * @param array  $fields
+     *
      * @return string
      */
-    public function getRecord($objectType, $sfId, array $fields)
+    public function getRecord($objectType, $sfId, array $fields = [])
     {
-        $url      = $this->baseUrl . '/services/data/v37.0/sobjects/' . $objectType . '/' . $sfId . '?fields=' . implode(',', $fields);
+        $fieldsQuery = '';
+        if (!empty($fields)) {
+            $fieldsQuery = '?fields=' . implode(',', $fields);
+        }
+        $url      = $this->baseUrl . '/services/data/v37.0/sobjects/' . $objectType . '/' . $sfId . $fieldsQuery;
         $response = $this->makeRequest('get', $url, ['headers' => ['Authorization' => $this->getAuthHeader()]]);
 
         return json_decode($response->getBody(), true);
@@ -263,7 +303,7 @@ class Client
 
             return $response;
         } catch (GuzzleRequestException $e) {
-            
+
             if ($e->getResponse() === null) {
         		throw $e;
         	}
@@ -280,14 +320,26 @@ class Client
 
     /**
      * @return string
+     * @throws AuthenticationException
      */
     private function getAuthHeader()
     {
         if ($this->accessToken === null) {
     		throw new AuthenticationException(0, "Access token not set");
     	}
-    	
+
         return 'Bearer ' . $this->accessToken->getAccessToken();
+    }
+
+    /**
+     * Is the response successful
+     *
+     * @param ResponseInterface $res
+     *
+     * @return bool
+     */
+    private function isSuccessful(ResponseInterface $res) {
+        return $res->getStatusCode() >= 200 && $res->getStatusCode() < 300;
     }
 
 }
