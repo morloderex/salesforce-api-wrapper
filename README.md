@@ -18,11 +18,13 @@ The package should be installed through composer and locked to a major version
 composer require crunch-accounting/salesforce-api:~1.0
 ```
 
-__Creating an oauth token:__
+__Getting an OAuth Token:__
+
+___With User interaction:___
 You need to fetch an access token for a user, all followup requests will be performed against this user.
 
 ```php
-$sfClient = \Crunch\Salesforce\Client::create('https://test.salesforce.com/', 'clientid', 'clientsecret');
+$sfClient = \Crunch\Salesforce\Client::create('https://test.salesforce.com/', 'clientid', 'clientsecret', 'v37.0');
 
 if ( ! isset($_GET['code'])) {
 
@@ -39,6 +41,16 @@ if ( ! isset($_GET['code'])) {
     $_SESSION['accessToken'] = $accessToken->toJson();
 
 }
+
+```
+
+___When having the username and password:___
+To use this method you also need the security token to be appended to the password.
+Keep in mind this method is to be used as a replacement for the old API Key workflow.
+
+```php
+$sfClient = \Crunch\Salesforce\Client::create('https://test.salesforce.com/', 'clientid', 'clientsecret');
+$sfClient->login('username', 'passwordAndSecurityTokenAppended');
 
 ```
 
@@ -94,6 +106,15 @@ class SalesforceConfig implements \Crunch\Salesforce\ClientConfigInterface {
     public function getClientSecret()
     {
         return 'clientsecret';
+    }
+    
+    /**
+     * Version of the API you wish to use
+     * @return string
+     */
+    public function getVersion()
+    {
+        return 'v37.0';
     }
 }
 
