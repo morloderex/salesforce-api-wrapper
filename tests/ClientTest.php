@@ -284,9 +284,10 @@ class ClientTest extends TestCase {
     private function getClientConfigMock()
     {
         $config = m::mock('Crunch\Salesforce\ClientConfigInterface');
-        $config->shouldReceive('getLoginUrl')->once()->andReturn('http://login.example.com');
-        $config->shouldReceive('getClientId')->once()->andReturn('client_id');
-        $config->shouldReceive('getClientSecret')->once()->andReturn('client_secret');
+        $config->shouldReceive('getLoginUrl')->andReturn('http://login.example.com');
+        $config->shouldReceive('getClientId')->andReturn('client_id');
+        $config->shouldReceive('getClientSecret')->andReturn('client_secret');
+        $config->shouldReceive('getVersion')->andReturn('v37.0');
         return $config;
     }
 

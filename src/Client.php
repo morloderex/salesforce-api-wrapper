@@ -8,21 +8,11 @@ use Psr\Http\Message\ResponseInterface;
 
 class Client
 {
-    /**
-     * @var string
-     */
-    protected $salesforceLoginUrl;
 
     /**
-     * @var string
+     * @var ClientConfigInterface
      */
-    protected $clientId;
-
-    /**
-     * @var string
-     */
-    protected $clientSecret;
-
+    private $clientConfig;
     /**
      * @var AccessToken
      */
@@ -48,24 +38,23 @@ class Client
      */
     public function __construct(ClientConfigInterface $clientConfig, \GuzzleHttp\Client $guzzleClient)
     {
-        $this->salesforceLoginUrl = $clientConfig->getLoginUrl();
-        $this->clientId           = $clientConfig->getClientId();
-        $this->clientSecret       = $clientConfig->getClientSecret();
-
+        $this->clientConfig = $clientConfig;
         $this->guzzleClient = $guzzleClient;
     }
 
     /**
      * Create an instance of the salesforce client using the passed in config data
      *
-     * @param $salesforceLoginUrl
-     * @param $clientId
-     * @param $clientSecret
+     * @param        $salesforceLoginUrl
+     * @param        $clientId
+     * @param        $clientSecret
+     * @param string $version of the API
+     *
      * @return Client
      */
-    public static function create($salesforceLoginUrl, $clientId, $clientSecret)
+    public static function create($salesforceLoginUrl, $clientId, $clientSecret, $version = "v37.0")
     {
-        return new self(new ClientConfig($salesforceLoginUrl, $clientId, $clientSecret), new \GuzzleHttp\Client);
+        return new self(new ClientConfig($salesforceLoginUrl, $clientId, $clientSecret, $version), new \GuzzleHttp\Client);
     }
 
     /**
@@ -81,11 +70,11 @@ class Client
      */
     public function login(string $user, string $password)
     {
-        $res = $this->guzzleClient->post($this->salesforceLoginUrl . 'services/oauth2/token', [
+        $res = $this->guzzleClient->post($this->clientConfig->getLoginUrl() . 'services/oauth2/token', [
             'headers'     => ['Accept' => 'application/json'],
             'form_params' => [
-                'client_id'     => $this->clientId,
-                'client_secret' => $this->clientSecret,
+                'client_id'     => $this->clientConfig->getClientId(),
+                'client_secret' => $this->clientConfig->getClientSecret(),
                 'grant_type'    => 'password',
                 'username'      => $user,
                 'password'      => $password,
@@ -116,7 +105,7 @@ class Client
         if (!empty($fields)) {
             $fieldsQuery = '?fields=' . implode(',', $fields);
         }
-        $url      = $this->baseUrl . '/services/data/v37.0/sobjects/' . $objectType . '/' . $sfId . $fieldsQuery;
+        $url      = $this->generateUrl('sobjects/'. $objectType . '/' . $sfId . $fieldsQuery);
         $response = $this->makeRequest('get', $url, ['headers' => ['Authorization' => $this->getAuthHeader()]]);
 
         return json_decode($response->getBody(), true);
@@ -136,7 +125,7 @@ class Client
         if ( ! empty($next_url)) {
             $url = $this->baseUrl . '/' . $next_url;
         } else {
-            $url = $this->baseUrl . '/services/data/v37.0/query/?q=' . urlencode($query);
+            $url = $this->generateUrl('query/?q=' . urlencode($query));
         }
         $response = $this->makeRequest('get', $url, ['headers' => ['Authorization' => $this->getAuthHeader()]]);
         $data     = json_decode($response->getBody(), true);
@@ -152,6 +141,7 @@ class Client
         return $results;
     }
 
+
     /**
      * Make an update request
      *
@@ -163,7 +153,7 @@ class Client
      */
     public function updateRecord($object, $id, array $data)
     {
-        $url = $this->baseUrl . '/services/data/v37.0/sobjects/' . $object . '/' . $id;
+        $url =  $this->generateUrl('sobjects/'. $object . '/' . $id);
 
         $this->makeRequest('patch', $url, [
             'headers' => ['Content-Type' => 'application/json', 'Authorization' => $this->getAuthHeader()],
@@ -183,7 +173,7 @@ class Client
      */
     public function createRecord($object, $data)
     {
-        $url = $this->baseUrl . '/services/data/v37.0/sobjects/' . $object . '/';
+        $url = $this->generateUrl('sobjects/'. $object);
 
         $response     = $this->makeRequest('post', $url, [
             'headers' => ['Content-Type' => 'application/json', 'Authorization' => $this->getAuthHeader()],
@@ -204,7 +194,7 @@ class Client
      */
     public function deleteRecord($object, $id)
     {
-        $url = $this->baseUrl . '/services/data/v37.0/sobjects/' . $object . '/' . $id;
+        $url = $this->generateUrl('sobjects/'. $object . '/' . $id);
 
         $this->makeRequest('delete', $url, ['headers' => ['Authorization' => $this->getAuthHeader()]]);
 
@@ -221,12 +211,12 @@ class Client
      */
     public function authorizeConfirm($code, $redirect_url)
     {
-        $url = $this->salesforceLoginUrl . 'services/oauth2/token';
+        $url = $this->clientConfig->getLoginUrl() . 'services/oauth2/token';
 
         $post_data = [
             'grant_type'    => 'authorization_code',
-            'client_id'     => $this->clientId,
-            'client_secret' => $this->clientSecret,
+            'client_id'     => $this->clientConfig->getClientId(),
+            'client_secret' => $this->clientConfig->getClientSecret(),
             'code'          => $code,
             'redirect_uri'  => $redirect_url
         ];
@@ -245,13 +235,13 @@ class Client
     public function getLoginUrl($redirectUrl)
     {
         $params = [
-            'client_id'     => $this->clientId,
+            'client_id'     => $this->clientConfig->getClientId(),
             'redirect_uri'  => $redirectUrl,
             'response_type' => 'code',
             'grant_type'    => 'authorization_code'
         ];
 
-        return $this->salesforceLoginUrl . 'services/oauth2/authorize?' . http_build_query($params);
+        return $this->clientConfig->getLoginUrl() . 'services/oauth2/authorize?' . http_build_query($params);
     }
 
     /**
@@ -262,12 +252,12 @@ class Client
      */
     public function refreshToken()
     {
-        $url = $this->salesforceLoginUrl . 'services/oauth2/token';
+        $url = $this->clientConfig->getLoginUrl() . 'services/oauth2/token';
 
         $post_data = [
             'grant_type'    => 'refresh_token',
-            'client_id'     => $this->clientId,
-            'client_secret' => $this->clientSecret,
+            'client_id'     => $this->clientConfig->getClientId(),
+            'client_secret' => $this->clientConfig->getClientSecret(),
             'refresh_token' => $this->accessToken->getRefreshToken()
         ];
 
@@ -340,6 +330,17 @@ class Client
      */
     private function isSuccessful(ResponseInterface $res) {
         return $res->getStatusCode() >= 200 && $res->getStatusCode() < 300;
+    }
+
+    /**
+     * Generate the call URL
+     * @param string $append
+     *
+     * @return string
+     */
+    private function generateUrl($append)
+    {
+        return $this->baseUrl . '/services/data/'.$this->clientConfig->getVersion().'/'.$append;
     }
 
 }
