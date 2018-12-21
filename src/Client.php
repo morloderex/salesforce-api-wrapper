@@ -137,8 +137,8 @@ class Client
      * Create a new object in salesforce
      *
      * @param string $object
-     * @param string $data
-     * @return bool
+     * @param array|object $data
+     * @return string The id of the newly created record
      * @throws \Exception
      */
     public function createRecord($object, $data)
@@ -157,8 +157,8 @@ class Client
     /**
      * Delete an object with th specified id
      *
-     * @param $object
-     * @param $id
+     * @param string $object
+     * @param string $id
      * @return bool
      * @throws \Exception
      */
