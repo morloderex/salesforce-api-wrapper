@@ -224,6 +224,8 @@ The createRecord method will return the id of the newly created record.
 $data = $sfClient->createRecord('Lead', ['email' => 'foo@example.com', 'Company' => 'New test', 'lastName' => 'John Doe']);
 
 $sfClient->updateRecord('Lead', '00WL0000008wVl1MDE', ['lastName' => 'Steve Jobs']);
+// or with the above freshly created client
+$sfClient->updateRecord('Lead', $data, ['lastName' => 'Steve Jobs']);
 
 ```
 
