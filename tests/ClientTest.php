@@ -24,6 +24,41 @@ class ClientTest extends TestCase {
         $this->assertInstanceOf(\Crunch\Salesforce\Client::class, $sfClient);
     }
 
+
+    /** @test */
+    public function client_will_login()
+    {
+        $response = m::mock('Psr\Http\Message\ResponseInterface');
+        $response->shouldReceive('getBody')->once()->andReturn('{
+"access_token": "00D2C0000000gq5!AQMAQEG0Dm3KzpyleUCsq3_NcvC4Dm4h_54SJ_Y4OlrTawlaz57dsrdFkUPHMj3pH7WNz7oMp1l49QooZsew3fqkj1p_oKRm",
+"instance_url": "https://API.salesforce.com",
+"id": "https://test.salesforce.com/id/JSDKLFJDIOFJIODFJIO/DJFKLJSDKFJOSDFJK",
+"token_type": "Bearer",
+"issued_at": "1470764688209",
+"signature": "VGVzdCBsaWJyYXJ5LiBZb3UgcmVhbGx5IHRob3VnaHQgdGhpcyB3b3VsZCBiZSBzb21ldGhpbmcgaW50ZXJlc3RpbmcgPw=="
+}');
+        $response->shouldReceive('getStatusCode')->twice()->andReturn(200);
+
+
+        $guzzle = m::mock('\GuzzleHttp\Client');
+        //Make sure the url contains the passed in data
+        $guzzle->shouldReceive('post')->with(stringContainsInOrder('token'), [
+            'headers'     => ['Accept' => 'application/json'],
+            'form_params' => [
+                'client_id'     => 'client_id',
+                'client_secret' => 'client_secret',
+                'grant_type'    => 'password',
+                'username'      => 'superuser',
+                'password'      => 'superpasswd',
+            ],
+        ])->once()->andReturn($response);
+
+
+        $sfClient = new \Crunch\Salesforce\Client($this->getClientConfigMock(), $guzzle);
+        $sfClient->setAccessToken($this->getAccessTokenMock());
+        $sfClient->login('superuser', 'superpasswd');
+    }
+
     /** @test */
     public function client_will_get_record()
     {
@@ -43,6 +78,29 @@ class ClientTest extends TestCase {
 
 
         $data = $sfClient->getRecord('Test', $recordId, ['field1', 'field2']);
+
+        $this->assertEquals(['foo' => 'bar'], $data);
+    }
+
+    /** @test */
+    public function client_will_get_record_complete()
+    {
+        $recordId = 'abc' . rand(1000, 9999999);
+
+        $response = m::mock('Psr\Http\Message\ResponseInterface');
+        $response->shouldReceive('getBody')->once()->andReturn(json_encode(['foo' => 'bar']));
+
+
+        $guzzle = m::mock('\GuzzleHttp\Client');
+        //Make sure the url contains the passed in data
+        $guzzle->shouldReceive('get')->with(stringContainsInOrder('Test', $recordId) , \Mockery::type('array'))->once()->andReturn($response);
+
+
+        $sfClient = new \Crunch\Salesforce\Client($this->getClientConfigMock(), $guzzle);
+        $sfClient->setAccessToken($this->getAccessTokenMock());
+
+
+        $data = $sfClient->getRecord('Test', $recordId);
 
         $this->assertEquals(['foo' => 'bar'], $data);
     }
@@ -226,9 +284,10 @@ class ClientTest extends TestCase {
     private function getClientConfigMock()
     {
         $config = m::mock('Crunch\Salesforce\ClientConfigInterface');
-        $config->shouldReceive('getLoginUrl')->once()->andReturn('http://login.example.com');
-        $config->shouldReceive('getClientId')->once()->andReturn('client_id');
-        $config->shouldReceive('getClientSecret')->once()->andReturn('client_secret');
+        $config->shouldReceive('getLoginUrl')->andReturn('http://login.example.com');
+        $config->shouldReceive('getClientId')->andReturn('client_id');
+        $config->shouldReceive('getClientSecret')->andReturn('client_secret');
+        $config->shouldReceive('getVersion')->andReturn('v37.0');
         return $config;
     }
 

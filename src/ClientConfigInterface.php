@@ -16,4 +16,10 @@ interface ClientConfigInterface {
      * @return string
      */
     public function getClientSecret();
+
+    /**
+     * Version of the API
+     * @return string
+     */
+    public function getVersion();
 }
