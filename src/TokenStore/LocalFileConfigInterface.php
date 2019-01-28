@@ -1,6 +1,9 @@
-<?php namespace Crunch\Salesforce\TokenStore;
+<?php
 
-interface LocalFileConfigInterface {
+namespace Morloderex\Salesforce\TokenStore;
+
+interface LocalFileConfigInterface
+{
 
     /**
      * The path where the file will be stored, no trailing slash, must be writable

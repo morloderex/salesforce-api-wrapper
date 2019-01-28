@@ -1,4 +1,8 @@
-<?php namespace Crunch\Salesforce\Exceptions;
+<?php
+
+namespace Morloderex\Salesforce\Exceptions;
+
+use Throwable;
 
 class RequestException extends \Exception
 {
@@ -13,32 +17,33 @@ class RequestException extends \Exception
      */
     private $requestBody;
 
-    /**
-     * @param string $message
-     * @param string $requestBody
-     */
-    public function __construct($message, $requestBody)
+
+    public static function withResponseError($data, Throwable $previous, int $code = 0): self
     {
-        $this->requestBody = $requestBody;
-        $error             = json_decode($requestBody, true);
+        $self = new self('', $code, $previous);
+
+        $self->requestBody = $data;
 
         //Errors generated during the auth stage are different to those generated during normal requests
-        if (isset($error['error']) && isset($error['error_description'])) {
-
-            $this->errorCode = $error['error'];
-            parent::__construct($error['error_description']);
-
-        } else if (isset($error[0]['message'])) {
-
-            $this->errorCode = $error[0]['errorCode'];
-            parent::__construct($error[0]['message']);
-
+        if (isset($data['error'], $data['error_description'])) {
+            $self->errorCode = $data['error'];
+            $self->message = $data['error_description'];
+        } else if (isset($data[0]['message'], $data[0]['errorCode'])) {
+            $self->errorCode = $data[0]['errorCode'];
+            $self->message = $data[0]['message'];
         } else {
-
-            $this->errorCode = $error['errorCode'];
-            parent::__construct($error['message']);
-
+            $self->errorCode = $data['errorCode'] ?? 0;
+            $self->message = $data['message'] ?? 'Unknown error';
         }
+
+        return $self;
+    }
+
+    public static function withoutResponseError($message, Throwable $previous, int $code = 0): self
+    {
+        $self = new self($message, $previous, $code);
+        $self->errorCode = 500;
+        return $self;
     }
 
     /**
@@ -52,9 +57,8 @@ class RequestException extends \Exception
     /**
      * @return string
      */
-    public function getErrorCode()
+    public function getErrorCode(): string
     {
         return $this->errorCode;
     }
-
 }

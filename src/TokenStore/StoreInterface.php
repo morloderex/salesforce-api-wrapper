@@ -1,6 +1,8 @@
-<?php namespace Crunch\Salesforce\TokenStore;
+<?php
 
-use Crunch\Salesforce\AccessToken;
+namespace Morloderex\Salesforce\TokenStore;
+
+use Morloderex\Salesforce\AccessToken;
 
 interface StoreInterface
 {

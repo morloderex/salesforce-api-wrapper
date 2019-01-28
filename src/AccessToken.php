@@ -1,10 +1,11 @@
-<?php namespace Crunch\Salesforce;
+<?php
+
+namespace Morloderex\Salesforce;
 
 use Carbon\Carbon;
 
 class AccessToken
 {
-
     /**
      * @var string
      */
@@ -51,54 +52,60 @@ class AccessToken
     private $apiUrl;
 
     /**
-     * @param string         $id
+     * @param string $tokenId
      * @param \Carbon\Carbon $dateIssued
      * @param \Carbon\Carbon $dateExpires
-     * @param array          $scope
-     * @param string         $tokenType
-     * @param string         $refreshToken
-     * @param string         $signature
-     * @param string         $accessToken
-     * @param string         $apiUrl
+     * @param array $scope
+     * @param string $tokenType
+     * @param string $refreshToken
+     * @param string $signature
+     * @param string $accessToken
+     * @param string $apiUrl
      */
     public function __construct(
-        $id,
-        $dateIssued,
-        $dateExpires,
-        $scope,
-        $tokenType,
-        $refreshToken,
-        $signature,
-        $accessToken,
-        $apiUrl
+        string $tokenId,
+        Carbon $dateIssued,
+        Carbon $dateExpires,
+        array $scope,
+        string $tokenType,
+        string $refreshToken,
+        string $signature,
+        string $accessToken,
+        string $apiUrl
     ) {
-        $this->id           = $id;
-        $this->dateIssued   = $dateIssued;
-        $this->dateExpires  = $dateExpires;
-        $this->scope        = $scope;
-        $this->tokenType    = $tokenType;
+        $this->id = $tokenId;
+        $this->dateIssued = $dateIssued;
+        $this->dateExpires = $dateExpires;
+        $this->scope = $scope;
+        $this->tokenType = $tokenType;
         $this->refreshToken = $refreshToken;
-        $this->signature    = $signature;
-        $this->accessToken  = $accessToken;
-        $this->apiUrl       = $apiUrl;
+        $this->signature = $signature;
+        $this->accessToken = $accessToken;
+        $this->apiUrl = $apiUrl;
     }
 
 
-    public function updateFromSalesforceRefresh(array $salesforceToken)
+    /**
+     * @param array $response
+     * @return \Morloderex\Salesforce\AccessToken
+     */
+    public function refresh(array $response): self
     {
-        $this->dateIssued = Carbon::createFromTimestamp((int)($salesforceToken['issued_at'] / 1000));
+        $this->dateIssued = Carbon::createFromTimestamp($response['issued_at']);
 
         $this->dateExpires = $this->dateIssued->copy()->addHour()->subMinutes(5);
 
-        $this->signature = $salesforceToken['signature'];
+        $this->signature = $response['signature'] ?? '';
 
-        $this->accessToken = $salesforceToken['access_token'];
+        $this->accessToken = $response['access_token'] ?? '';
+
+        return $this;
     }
 
     /**
      * @return bool
      */
-    public function needsRefresh()
+    public function needsRefresh(): bool
     {
         return $this->dateExpires->lt(Carbon::now());
     }
@@ -107,18 +114,18 @@ class AccessToken
     /**
      * @return array
      */
-    public function toArray()
+    public function toArray(): array
     {
         return [
-            'id'           => $this->id,
-            'dateIssued'   => $this->dateIssued->format('Y-m-d H:i:s'),
-            'dateExpires'  => $this->dateExpires->format('Y-m-d H:i:s'),
-            'scope'        => $this->scope,
-            'tokenType'    => $this->tokenType,
+            'id' => $this->id,
+            'dateIssued' => $this->dateIssued->format('Y-m-d H:i:s'),
+            'dateExpires' => $this->dateExpires->format('Y-m-d H:i:s'),
+            'scope' => $this->scope,
+            'tokenType' => $this->tokenType,
             'refreshToken' => $this->refreshToken,
-            'signature'    => $this->signature,
-            'accessToken'  => $this->accessToken,
-            'apiUrl'       => $this->apiUrl,
+            'signature' => $this->signature,
+            'accessToken' => $this->accessToken,
+            'apiUrl' => $this->apiUrl,
         ];
     }
 
@@ -126,15 +133,34 @@ class AccessToken
      * @param int $options
      * @return string
      */
-    public function toJson($options = 0)
+    public function toJson($options = 0): string
     {
         return json_encode($this->toArray(), $options);
     }
 
     /**
+     * @param array $array
+     * @return \Morloderex\Salesforce\AccessToken
+     */
+    public static function fromArray(array $array): self
+    {
+        return new self(
+            $array['id'] ?? '',
+            Carbon::parse($array['dateIssued']),
+            Carbon::parse($array['dateExpires']),
+            $array['scope'] ?? [],
+            $array['tokenType'] ?? '',
+            $array['refreshToken'] ?? '',
+            $array['signature'] ?? '',
+            $array['accessToken'] ?? '',
+            $array['apiUrl'] ?? ''
+        );
+    }
+
+    /**
      * @return string
      */
-    public function __toString()
+    public function __toString(): string
     {
         return $this->toJson();
     }
@@ -142,7 +168,7 @@ class AccessToken
     /**
      * @return Carbon
      */
-    public function getDateExpires()
+    public function getDateExpires(): Carbon
     {
         return $this->dateExpires;
     }
@@ -150,7 +176,7 @@ class AccessToken
     /**
      * @return Carbon
      */
-    public function getDateIssued()
+    public function getDateIssued(): Carbon
     {
         return $this->dateIssued;
     }
@@ -158,7 +184,7 @@ class AccessToken
     /**
      * @return string
      */
-    public function getRefreshToken()
+    public function getRefreshToken(): string
     {
         return $this->refreshToken;
     }
@@ -166,7 +192,7 @@ class AccessToken
     /**
      * @return string
      */
-    public function getAccessToken()
+    public function accessToken(): string
     {
         return $this->accessToken;
     }
@@ -174,7 +200,7 @@ class AccessToken
     /**
      * @return array
      */
-    public function getScope()
+    public function getScopes(): array
     {
         return $this->scope;
     }
@@ -182,9 +208,32 @@ class AccessToken
     /**
      * @return string
      */
-    public function getApiUrl()
+    public function getApiUrl(): string
     {
         return $this->apiUrl;
     }
 
+    /**
+     * @return string
+     */
+    public function id(): string
+    {
+        return $this->id;
+    }
+
+    /**
+     * @return string
+     */
+    public function getTokenType(): string
+    {
+        return $this->tokenType;
+    }
+
+    /**
+     * @return string
+     */
+    public function getSignature(): string
+    {
+        return $this->signature;
+    }
 }

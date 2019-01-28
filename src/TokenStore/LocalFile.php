@@ -1,7 +1,9 @@
-<?php namespace Crunch\Salesforce\TokenStore;
+<?php
 
-use Crunch\Salesforce\AccessToken;
-use Crunch\Salesforce\AccessTokenGenerator;
+namespace Morloderex\Salesforce\TokenStore;
+
+use Morloderex\Salesforce\AccessToken;
+use Morloderex\Salesforce\AccessTokenGenerator;
 
 class LocalFile implements StoreInterface
 {

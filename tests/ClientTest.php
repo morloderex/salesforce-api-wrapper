@@ -4,24 +4,22 @@ use \Mockery as m;
 
 class ClientTest extends TestCase {
 
-
-
     /** @test */
     public function client_can_be_instantiated()
     {
         $guzzle = m::mock('\GuzzleHttp\Client');
 
-        $sfClient = new \Crunch\Salesforce\Client($this->getClientConfigMock(), $guzzle);
+        $sfClient = new \Morloderex\Salesforce\Client($this->getClientConfigMock(), $guzzle);
 
-        $this->assertInstanceOf(\Crunch\Salesforce\Client::class, $sfClient);
+        $this->assertInstanceOf(\Morloderex\Salesforce\Client::class, $sfClient);
     }
 
     /** @test */
     public function client_can_be_statically_instantiated()
     {
-        $sfClient = \Crunch\Salesforce\Client::create('loginUrl', 'clientId', 'clientSecret');
+        $sfClient = \Morloderex\Salesforce\Client::create('loginUrl', 'clientId', 'clientSecret', 'redirectUrl');
 
-        $this->assertInstanceOf(\Crunch\Salesforce\Client::class, $sfClient);
+        $this->assertInstanceOf(\Morloderex\Salesforce\Client::class, $sfClient);
     }
 
 
@@ -54,7 +52,7 @@ class ClientTest extends TestCase {
         ])->once()->andReturn($response);
 
 
-        $sfClient = new \Crunch\Salesforce\Client($this->getClientConfigMock(), $guzzle);
+        $sfClient = new \Morloderex\Salesforce\Client($this->getClientConfigMock(), $guzzle);
         $sfClient->setAccessToken($this->getAccessTokenMock());
         $sfClient->login('superuser', 'superpasswd');
     }
@@ -73,7 +71,7 @@ class ClientTest extends TestCase {
         $guzzle->shouldReceive('get')->with(stringContainsInOrder('Test', $recordId, 'field1,field2') , \Mockery::type('array'))->once()->andReturn($response);
 
 
-        $sfClient = new \Crunch\Salesforce\Client($this->getClientConfigMock(), $guzzle);
+        $sfClient = new \Morloderex\Salesforce\Client($this->getClientConfigMock(), $guzzle);
         $sfClient->setAccessToken($this->getAccessTokenMock());
 
 
@@ -96,7 +94,7 @@ class ClientTest extends TestCase {
         $guzzle->shouldReceive('get')->with(stringContainsInOrder('Test', $recordId) , \Mockery::type('array'))->once()->andReturn($response);
 
 
-        $sfClient = new \Crunch\Salesforce\Client($this->getClientConfigMock(), $guzzle);
+        $sfClient = new \Morloderex\Salesforce\Client($this->getClientConfigMock(), $guzzle);
         $sfClient->setAccessToken($this->getAccessTokenMock());
 
 
@@ -117,7 +115,7 @@ class ClientTest extends TestCase {
         $guzzle->shouldReceive('get')->with(stringContainsInOrder('SELECT+Name+FROM+Lead+LIMIT+10') , \Mockery::type('array'))->once()->andReturn($response);
 
 
-        $sfClient = new \Crunch\Salesforce\Client($this->getClientConfigMock(), $guzzle);
+        $sfClient = new \Morloderex\Salesforce\Client($this->getClientConfigMock(), $guzzle);
         $sfClient->setAccessToken($this->getAccessTokenMock());
 
 
@@ -138,7 +136,7 @@ class ClientTest extends TestCase {
         $guzzle->shouldReceive('post')->with(containsString('Test') , \Mockery::type('array'))->once()->andReturn($response);
 
 
-        $sfClient = new \Crunch\Salesforce\Client($this->getClientConfigMock(), $guzzle);
+        $sfClient = new \Morloderex\Salesforce\Client($this->getClientConfigMock(), $guzzle);
         $sfClient->setAccessToken($this->getAccessTokenMock());
 
 
@@ -159,7 +157,7 @@ class ClientTest extends TestCase {
         $guzzle->shouldReceive('patch')->with(stringContainsInOrder('Test', $recordId) , \Mockery::type('array'))->once()->andReturn($response);
 
 
-        $sfClient = new \Crunch\Salesforce\Client($this->getClientConfigMock(), $guzzle);
+        $sfClient = new \Morloderex\Salesforce\Client($this->getClientConfigMock(), $guzzle);
         $sfClient->setAccessToken($this->getAccessTokenMock());
 
 
@@ -181,7 +179,7 @@ class ClientTest extends TestCase {
         $guzzle->shouldReceive('delete')->with(stringContainsInOrder('Test', $recordId), \Mockery::type('array'))->once()->andReturn($response);
 
 
-        $sfClient = new \Crunch\Salesforce\Client($this->getClientConfigMock(), $guzzle);
+        $sfClient = new \Morloderex\Salesforce\Client($this->getClientConfigMock(), $guzzle);
         $sfClient->setAccessToken($this->getAccessTokenMock());
 
 
@@ -204,7 +202,7 @@ class ClientTest extends TestCase {
         $guzzle->shouldReceive('post')->with(stringContainsInOrder('services/oauth2/token'), \Mockery::type('array'))->once()->andReturn($response);
 
 
-        $sfClient = new \Crunch\Salesforce\Client($this->getClientConfigMock(), $guzzle);
+        $sfClient = new \Morloderex\Salesforce\Client($this->getClientConfigMock(), $guzzle);
         $sfClient->setAccessToken($this->getAccessTokenMock());
 
 
@@ -225,7 +223,7 @@ class ClientTest extends TestCase {
         $guzzle->shouldReceive('post')->with(stringContainsInOrder('services/oauth2/token'), \Mockery::type('array'))->once()->andReturn($response);
 
 
-        $sfClient = new \Crunch\Salesforce\Client($this->getClientConfigMock(), $guzzle);
+        $sfClient = new \Morloderex\Salesforce\Client($this->getClientConfigMock(), $guzzle);
         $accessToken = $this->getAccessTokenMock();
         $accessToken->shouldReceive('updateFromSalesforceRefresh');
         $sfClient->setAccessToken($accessToken);
@@ -239,7 +237,7 @@ class ClientTest extends TestCase {
         $guzzle = m::mock('\GuzzleHttp\Client');
 
 
-        $sfClient = new \Crunch\Salesforce\Client($this->getClientConfigMock(), $guzzle);
+        $sfClient = new \Morloderex\Salesforce\Client($this->getClientConfigMock(), $guzzle);
         $sfClient->setAccessToken($this->getAccessTokenMock());
 
 
@@ -250,7 +248,7 @@ class ClientTest extends TestCase {
 
     /**
      * @test
-     * @expectedException        Crunch\Salesforce\Exceptions\RequestException
+     * @expectedException        Morloderex\Salesforce\Exceptions\RequestException
      * @expectedExceptionMessage expired authorization code
      */
     public function client_can_parse_auth_flow_error()
@@ -269,7 +267,7 @@ class ClientTest extends TestCase {
         $guzzle->shouldReceive('post')->with(stringContainsInOrder('services/oauth2/token'), \Mockery::type('array'))->once()->andThrow($guzzleException);
 
         //Setup the client
-        $sfClient = new \Crunch\Salesforce\Client($this->getClientConfigMock(), $guzzle);
+        $sfClient = new \Morloderex\Salesforce\Client($this->getClientConfigMock(), $guzzle);
         $sfClient->setAccessToken($this->getAccessTokenMock());
 
         //Try the auth flow - this should generate an exception
@@ -283,7 +281,7 @@ class ClientTest extends TestCase {
      */
     private function getClientConfigMock()
     {
-        $config = m::mock('Crunch\Salesforce\ClientConfigInterface');
+        $config = m::mock('Morloderex\Salesforce\ClientConfigInterface');
         $config->shouldReceive('getLoginUrl')->andReturn('http://login.example.com');
         $config->shouldReceive('getClientId')->andReturn('client_id');
         $config->shouldReceive('getClientSecret')->andReturn('client_secret');
@@ -293,7 +291,7 @@ class ClientTest extends TestCase {
 
     private function getAccessTokenMock()
     {
-        $accessToken = m::mock('Crunch\Salesforce\AccessToken');
+        $accessToken = m::mock('Morloderex\Salesforce\AccessToken');
         $accessToken->shouldReceive('getApiUrl')->andReturn('http://api.example.com');
         $accessToken->shouldReceive('getAccessToken')->andReturn('123456789abcdefghijk');
         $accessToken->shouldReceive('getRefreshToken')->andReturn('refresh123456789abcdefghijk');

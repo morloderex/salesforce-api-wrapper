@@ -1,25 +1,32 @@
-<?php namespace Crunch\Salesforce;
+<?php
 
-interface ClientConfigInterface {
+namespace Morloderex\Salesforce;
+
+interface ClientConfigInterface
+{
+    /**
+     * @return string
+     */
+    public function getLoginUrl(): string;
 
     /**
      * @return string
      */
-    public function getLoginUrl();
+    public function getClientId(): string;
 
     /**
      * @return string
      */
-    public function getClientId();
-
-    /**
-     * @return string
-     */
-    public function getClientSecret();
+    public function getClientSecret(): string;
 
     /**
      * Version of the API
      * @return string
      */
-    public function getVersion();
+    public function getVersion(): string;
+
+    /**
+     * @return string
+     */
+    public function getRedirectUrl(): string;
 }

@@ -8,7 +8,7 @@ class AccessTokenTest extends TestCase {
         $issueDate  = \Carbon\Carbon::now();
         $expiryDate = \Carbon\Carbon::now()->addHour();
 
-        $token = new \Crunch\Salesforce\AccessToken(
+        $token = new \Morloderex\Salesforce\AccessToken(
             'abc123',
             $issueDate,
             $expiryDate,
@@ -20,7 +20,7 @@ class AccessTokenTest extends TestCase {
             'http://example.com'
         );
 
-        $this->assertInstanceOf(\Crunch\Salesforce\AccessToken::class, $token);
+        $this->assertInstanceOf(\Morloderex\Salesforce\AccessToken::class, $token);
 
         $this->assertEquals('access-token', $token->getAccessToken());
         $this->assertEquals('refresh-token', $token->getRefreshToken());
@@ -34,7 +34,7 @@ class AccessTokenTest extends TestCase {
     /** @test */
     public function token_refresh_is_correct()
     {
-        $token1 = new \Crunch\Salesforce\AccessToken(
+        $token1 = new \Morloderex\Salesforce\AccessToken(
             'abc123',
             \Carbon\Carbon::now(),
             \Carbon\Carbon::now()->addHour(),
@@ -47,7 +47,7 @@ class AccessTokenTest extends TestCase {
         );
         $this->assertFalse($token1->needsRefresh());
 
-        $token2 = new \Crunch\Salesforce\AccessToken(
+        $token2 = new \Morloderex\Salesforce\AccessToken(
             'abc123',
             \Carbon\Carbon::now()->subHours(2),
             \Carbon\Carbon::now()->subHour(),
@@ -64,7 +64,7 @@ class AccessTokenTest extends TestCase {
     /** @test */
     public function can_convert_to_json()
     {
-        $token = new \Crunch\Salesforce\AccessToken(
+        $token = new \Morloderex\Salesforce\AccessToken(
             'abc123',
             \Carbon\Carbon::now(),
             \Carbon\Carbon::now()->addHour(),
@@ -85,7 +85,7 @@ class AccessTokenTest extends TestCase {
     /** @test */
     public function updates_correctly()
     {
-        $token = new \Crunch\Salesforce\AccessToken(
+        $token = new \Morloderex\Salesforce\AccessToken(
             'abc123',
             \Carbon\Carbon::now(),
             \Carbon\Carbon::now()->addHour(),

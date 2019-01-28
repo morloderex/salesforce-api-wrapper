@@ -6,22 +6,23 @@
   "license": "MIT",
   "authors": [
     {
-      "name": "Arthur Guy",
-      "email": "arthur.guy@crunch.co.uk"
+      "name": "Michael Lundbøl",
+      "email": "michael.lundboel@gmail.com"
     }
   ],
   "require": {
-    "php": ">=5.5",
+    "ext-json": "*",
+    "php": ">=7.1.3",
     "nesbot/carbon": "^1.12",
     "guzzlehttp/guzzle": "^6.0"
   },
   "require-dev": {
-    "phpunit/phpunit": "^4.6",
-    "mockery/mockery": "^0.9.4"
+    "phpunit/phpunit": "^7.0",
+    "mockery/mockery": "^1.2"
   },
   "autoload": {
     "psr-4": {
-      "Crunch\\Salesforce\\": "src/"
+      "Morloderex\\Salesforce\\": "src/"
     }
   },
   "autoload-dev": {

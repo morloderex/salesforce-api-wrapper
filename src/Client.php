@@ -1,25 +1,24 @@
-<?php namespace Crunch\Salesforce;
+<?php
 
-use Crunch\Salesforce\Exceptions\RequestException;
-use GuzzleHttp\Exception\RequestException as GuzzleRequestException;
-use Crunch\Salesforce\Exceptions\AuthenticationException;
-use GuzzleHttp\Psr7\Response;
-use Psr\Http\Message\ResponseInterface;
+namespace Morloderex\Salesforce;
+
+use Morloderex\Salesforce\Exceptions\RequestException;
+use GuzzleHttp\Exception\GuzzleException;
+use Morloderex\Salesforce\Exceptions\AuthenticationException;
 
 class Client
 {
-
     /**
      * @var ClientConfigInterface
      */
     private $clientConfig;
     /**
-     * @var AccessToken
+     * @var AccessToken|null
      */
     private $accessToken;
 
     /**
-     * @var string
+     * @var string|null
      */
     private $baseUrl;
 
@@ -28,33 +27,52 @@ class Client
      */
     private $guzzleClient;
 
+    /**
+     * @var \Morloderex\Salesforce\AccessTokenGenerator
+     */
+    private $tokenGenerator;
+
 
     /**
      * Create a sf client using a client config object or an array of params
      *
      * @param ClientConfigInterface $clientConfig
-     * @param \GuzzleHttp\Client    $guzzleClient
-     * @throws \Exception
+     * @param \GuzzleHttp\ClientInterface $guzzleClient
+     * @param \Morloderex\Salesforce\AccessTokenGeneratorInterface $accessTokenGenerator
      */
-    public function __construct(ClientConfigInterface $clientConfig, \GuzzleHttp\Client $guzzleClient)
-    {
+    public function __construct(
+        ClientConfigInterface $clientConfig,
+        \GuzzleHttp\ClientInterface $guzzleClient,
+        AccessTokenGeneratorInterface $accessTokenGenerator
+    ) {
         $this->clientConfig = $clientConfig;
         $this->guzzleClient = $guzzleClient;
+        $this->tokenGenerator = $accessTokenGenerator;
     }
 
     /**
      * Create an instance of the salesforce client using the passed in config data
      *
-     * @param        $salesforceLoginUrl
-     * @param        $clientId
-     * @param        $clientSecret
-     * @param string $version of the API
+     * @param string $salesforceLoginUrl
+     * @param string $clientId
+     * @param string $clientSecret
+     * @param string $redirectUrl
+     * @param string $version
      *
      * @return Client
      */
-    public static function create($salesforceLoginUrl, $clientId, $clientSecret, $version = "v37.0")
-    {
-        return new self(new ClientConfig($salesforceLoginUrl, $clientId, $clientSecret, $version), new \GuzzleHttp\Client);
+    public static function create(
+        string $salesforceLoginUrl,
+        string $clientId,
+        string $clientSecret,
+        string $redirectUrl,
+        string $version
+    ): Client {
+        return new self(
+            new ClientConfig($salesforceLoginUrl, $clientId, $clientSecret, $redirectUrl, $version),
+            new \GuzzleHttp\Client,
+            new AccessTokenGenerator
+        );
     }
 
     /**
@@ -65,11 +83,13 @@ class Client
      * @param string $user
      * @param string $password
      *
-     * @throws \Exception
+     * @return \Morloderex\Salesforce\AccessToken
+     * @throws \Morloderex\Salesforce\Exceptions\AuthenticationException
+     * @throws \Morloderex\Salesforce\Exceptions\RequestException
      */
-    public function login($user, $password)
+    public function login(string $user, string $password): AccessToken
     {
-        $res = $this->guzzleClient->post($this->clientConfig->getLoginUrl() . 'services/oauth2/token', [
+        $response = $this->makeRequest('post', $this->clientConfig->getLoginUrl() . 'services/oauth2/token', [
             'headers'     => ['Accept' => 'application/json'],
             'form_params' => [
                 'client_id'     => $this->clientConfig->getClientId(),
@@ -79,13 +99,12 @@ class Client
                 'password'      => $password,
             ],
         ]);
-        if (!$this->isSuccessful($res)) {
-            throw new RequestException("Can't login", (string)$res->getBody());
-        }
-        $tokeGenerator = new AccessTokenGenerator();
 
-        $decodedJson = json_decode((string)$res->getBody(), true);
-        $this->setAccessToken($tokeGenerator->createFromSalesforceResponse($decodedJson));
+        $this->setAccessToken(
+            $accessToken = $this->tokenGenerator->createFromSalesforceResponse($response)
+        );
+
+        return $accessToken;
     }
 
 
@@ -93,21 +112,30 @@ class Client
      * Fetch a specific object
      *
      * @param string $objectType
-     * @param string $sfId
-     * @param array  $fields
+     * @param string $id
+     * @param array $fields
      *
-     * @return string
+     * @return array
+     * @throws \Morloderex\Salesforce\Exceptions\AuthenticationException
+     * @throws \Morloderex\Salesforce\Exceptions\RequestException
      */
-    public function getRecord($objectType, $sfId, array $fields = [])
+    public function getRecord(string $objectType, string $id, array $fields = []): array
     {
         $fieldsQuery = '';
-        if (!empty($fields)) {
+
+        if ([] !== $fields) {
             $fieldsQuery = '?fields=' . implode(',', $fields);
         }
-        $url      = $this->generateUrl('sobjects/'. $objectType . '/' . $sfId . $fieldsQuery);
-        $response = $this->makeRequest('get', $url, ['headers' => ['Authorization' => $this->getAuthHeader()]]);
 
-        return json_decode($response->getBody(), true);
+        return $this->makeRequest(
+            'get',
+            $this->generateUrl('sobjects/'. $objectType . '/' . $id . $fieldsQuery),
+            [
+                'headers' => [
+                    'Authorization' => $this->getAuthHeader()
+                ]
+            ]
+        );
     }
 
     /**
@@ -115,25 +143,30 @@ class Client
      * This will loop through large result sets collecting all the data so the query should be limited
      *
      * @param string|null $query
-     * @param string|null $next_url
+     * @param string|null $nextUrl
      * @return array
      * @throws \Exception
      */
-    public function search($query = null, $next_url = null)
+    public function search($query = null, $nextUrl = null): array
     {
-        if ( ! empty($next_url)) {
-            $url = $this->baseUrl . '/' . $next_url;
+        if (null !== $nextUrl) {
+            $url = $this->baseUrl . '/' . $nextUrl;
         } else {
             $url = $this->generateUrl('query/?q=' . urlencode($query));
         }
-        $response = $this->makeRequest('get', $url, ['headers' => ['Authorization' => $this->getAuthHeader()]]);
-        $data     = json_decode($response->getBody(), true);
 
-        $results = $data['records'];
-        if ( ! $data['done']) {
-            $more_results = $this->search(null, substr($data['nextRecordsUrl'], 1));
-            if ( ! empty($more_results)) {
-                $results = array_merge($results, $more_results);
+        $data = $this->makeRequest('get', $url, ['headers' => ['Authorization' => $this->getAuthHeader()]]);
+
+        $results = $data['records'] ?? [];
+        $done = $data['done'] ?? null;
+
+        $nextRecordsUrl = $data['nextRecordsUrl'] ?? '';
+
+        if (null !== $done) {
+            $moreResults = $this->search(null, substr($nextRecordsUrl, 1));
+
+            if (! empty($moreResults)) {
+                $results = array_merge($results, $moreResults);
             }
         }
 
@@ -144,56 +177,67 @@ class Client
     /**
      * Make an update request
      *
-     * @param string $object The object type to update
-     * @param string $id The ID of the record to update
-     * @param array  $data The data to put into the record
-     * @return bool
-     * @throws \Exception
+     * @param string $type The object type to update
+     * @param string $objectId The ID of the record to update
+     * @param array $data The data to put into the record
+     * @return array
+     *
+     * @throws \Morloderex\Salesforce\Exceptions\AuthenticationException
+     * @throws \Morloderex\Salesforce\Exceptions\RequestException
      */
-    public function updateRecord($object, $id, array $data)
+    public function updateRecord(string $type, string $objectId, array $data): array
     {
-        $url =  $this->generateUrl('sobjects/'. $object . '/' . $id);
+        $url = $this->generateUrl('sobjects/'. $type . '/' . $objectId);
 
-        $this->makeRequest('patch', $url, [
-            'headers' => ['Content-Type' => 'application/json', 'Authorization' => $this->getAuthHeader()],
-            'body'    => json_encode($data)
+        return $this->makeRequest('patch', $url, [
+            'headers' => [
+                'Content-Type' => 'application/json',
+                'Authorization' => $this->getAuthHeader()
+            ],
+            'json'    => json_encode($data)
         ]);
-
-        return true;
     }
 
     /**
      * Create a new object in salesforce
      *
-     * @param string $object
+     * @param string $type
      * @param array|object $data
      * @return string The id of the newly created record
-     * @throws \Exception
+     * @throws \Morloderex\Salesforce\Exceptions\AuthenticationException
+     * @throws \Morloderex\Salesforce\Exceptions\RequestException
      */
-    public function createRecord($object, $data)
+    public function createRecord(string $type, array $data): string
     {
-        $url = $this->generateUrl('sobjects/'. $object);
+        $url = $this->generateUrl('sobjects/'. $type);
 
-        $response     = $this->makeRequest('post', $url, [
-            'headers' => ['Content-Type' => 'application/json', 'Authorization' => $this->getAuthHeader()],
-            'body'    => json_encode($data)
-        ]);
-        $responseBody = json_decode($response->getBody(), true);
+        $response = $this->makeRequest(
+            'post',
+            $url,
+            [
+                'headers' => [
+                    'Content-Type' => 'application/json',
+                    'Authorization' => $this->getAuthHeader()
+                ],
+                'json'    => json_encode($data)
+            ]
+        );
 
-        return $responseBody['id'];
+        return $response['id'];
     }
 
     /**
      * Delete an object with th specified id
      *
-     * @param string $object
-     * @param string $id
+     * @param string $type
+     * @param string $objectId
      * @return bool
-     * @throws \Exception
+     * @throws \Morloderex\Salesforce\Exceptions\AuthenticationException
+     * @throws \Morloderex\Salesforce\Exceptions\RequestException
      */
-    public function deleteRecord($object, $id)
+    public function deleteRecord(string $type, string $objectId): bool
     {
-        $url = $this->generateUrl('sobjects/'. $object . '/' . $id);
+        $url = $this->generateUrl('sobjects/'. $type . '/' . $objectId);
 
         $this->makeRequest('delete', $url, ['headers' => ['Authorization' => $this->getAuthHeader()]]);
 
@@ -204,38 +248,40 @@ class Client
      * Complete the oauth process by confirming the code and returning an access token
      *
      * @param $code
-     * @param $redirect_url
-     * @return array|mixed
+     * @return array
      * @throws \Exception
      */
-    public function authorizeConfirm($code, $redirect_url)
+    public function authorizeConfirm(string $code): array
     {
         $url = $this->clientConfig->getLoginUrl() . 'services/oauth2/token';
 
-        $post_data = [
+        $data = [
             'grant_type'    => 'authorization_code',
             'client_id'     => $this->clientConfig->getClientId(),
             'client_secret' => $this->clientConfig->getClientSecret(),
             'code'          => $code,
-            'redirect_uri'  => $redirect_url
+            'redirect_uri'  => $this->clientConfig->getRedirectUrl()
         ];
 
-        $response = $this->makeRequest('post', $url, ['form_params' => $post_data]);
+        $response = $this->makeRequest('post', $url, ['form_params' => $data]);
 
-        return json_decode($response->getBody(), true);
+        $this->setAccessToken(
+            $this->tokenGenerator->createFromSalesforceResponse($response)
+        );
+
+        return $response;
     }
 
     /**
      * Get the url to redirect users to when setting up a salesforce access token
      *
-     * @param $redirectUrl
      * @return string
      */
-    public function getLoginUrl($redirectUrl)
+    public function getLoginUrl(): string
     {
         $params = [
             'client_id'     => $this->clientConfig->getClientId(),
-            'redirect_uri'  => $redirectUrl,
+            'redirect_uri'  => $this->clientConfig->getRedirectUrl(),
             'response_type' => 'code',
             'grant_type'    => 'authorization_code'
         ];
@@ -249,32 +295,36 @@ class Client
      * @return AccessToken
      * @throws \Exception
      */
-    public function refreshToken()
+    public function refreshToken(): AccessToken
     {
         $url = $this->clientConfig->getLoginUrl() . 'services/oauth2/token';
 
-        $post_data = [
+        $data = [
             'grant_type'    => 'refresh_token',
             'client_id'     => $this->clientConfig->getClientId(),
             'client_secret' => $this->clientConfig->getClientSecret(),
             'refresh_token' => $this->accessToken->getRefreshToken()
         ];
 
-        $response = $this->makeRequest('post', $url, ['form_params' => $post_data]);
+        $response = $this->makeRequest(
+            'post',
+            $url,
+            ['form_params' => $data]
+        );
 
-        $update = json_decode($response->getBody(), true);
-        $this->accessToken->updateFromSalesforceRefresh($update);
-
-        return $this->accessToken;
+        return $this->accessToken->refresh($response);
     }
 
     /**
      * @param AccessToken $accessToken
+     * @return self
      */
-    public function setAccessToken(AccessToken $accessToken)
+    public function setAccessToken(AccessToken $accessToken): self
     {
         $this->accessToken = $accessToken;
         $this->baseUrl     = $accessToken->getApiUrl();
+
+        return $this;
     }
 
     /**
@@ -288,47 +338,39 @@ class Client
     private function makeRequest($method, $url, $data)
     {
         try {
-            $response = $this->guzzleClient->$method($url, $data);
+            $response = $this->guzzleClient->request($method, $url, $data);
 
-            return $response;
-        } catch (GuzzleRequestException $e) {
-
-            if ($e->getResponse() === null) {
-        		throw $e;
-        	}
-
-            //If its an auth error convert to an auth exception
-            if ($e->getResponse()->getStatusCode() == 401) {
-                $error = json_decode($e->getResponse()->getBody(), true);
-                throw new AuthenticationException($error[0]['errorCode'], $error[0]['message']);
+            return \GuzzleHttp\json_decode((string) $response->getBody());
+        } catch (GuzzleException $e) {
+            if (false === $e->hasResponse()) {
+                throw RequestException::withoutResponseError($e->getMessage(), $e, $e->getCode());
             }
-            throw new RequestException($e->getMessage(), (string)$e->getResponse()->getBody());
-        }
 
+            $responseError = json_decode($e->getResponse()->getBody(), true);
+
+            if (401 === $e->getResponse()->getStatusCode()) {
+                throw new AuthenticationException(
+                    $responseError[0]['errorCode'] ?? null,
+                    $responseError[0]['message'] ?? 'Unauthorized',
+                    $e->getPrevious()
+                );
+            }
+
+            throw RequestException::withResponseError($responseError, $e);
+        }
     }
 
     /**
      * @return string
      * @throws AuthenticationException
      */
-    private function getAuthHeader()
+    private function getAuthHeader(): string
     {
         if ($this->accessToken === null) {
-    		throw new AuthenticationException(0, "Access token not set");
-    	}
+            throw new AuthenticationException(0, 'Access token not set');
+        }
 
-        return 'Bearer ' . $this->accessToken->getAccessToken();
-    }
-
-    /**
-     * Is the response successful
-     *
-     * @param ResponseInterface $res
-     *
-     * @return bool
-     */
-    private function isSuccessful(ResponseInterface $res) {
-        return $res->getStatusCode() >= 200 && $res->getStatusCode() < 300;
+        return 'Bearer ' . $this->accessToken->accessToken();
     }
 
     /**
@@ -337,9 +379,8 @@ class Client
      *
      * @return string
      */
-    private function generateUrl($append)
+    private function generateUrl(string $append): string
     {
         return $this->baseUrl . '/services/data/'.$this->clientConfig->getVersion().'/'.$append;
     }
-
 }

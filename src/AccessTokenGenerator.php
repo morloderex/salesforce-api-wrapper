@@ -1,8 +1,11 @@
-<?php namespace Crunch\Salesforce;
+<?php
+
+namespace Morloderex\Salesforce;
 
 use Carbon\Carbon;
 
-class AccessTokenGenerator {
+class AccessTokenGenerator implements AccessTokenGeneratorInterface
+{
 
     /**
      * Create an access token from stored json data
@@ -10,72 +13,49 @@ class AccessTokenGenerator {
      * @param $text
      * @return AccessToken
      */
-    public function createFromJson($text)
+    public function createFromJson(string $text): AccessToken
     {
         $savedToken = json_decode($text, true);
 
-        $id = $savedToken['id'];
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            throw new \InvalidArgumentException('Invalid json encountered');
+        }
 
-        $dateIssued = Carbon::parse($savedToken['dateIssued']);
-
-        $dateExpires = Carbon::parse($savedToken['dateExpires']);
-
-        $scope = $savedToken['scope'];
-
-        $tokenType = $savedToken['tokenType'];
-
-        $refreshToken = $savedToken['refreshToken'];
-
-        $signature = $savedToken['signature'];
-
-        $accessToken = $savedToken['accessToken'];
-
-        $apiUrl = $savedToken['apiUrl'];
-
-        $token = new AccessToken(
-            $id,
-            $dateIssued,
-            $dateExpires,
-            $scope,
-            $tokenType,
-            $refreshToken,
-            $signature,
-            $accessToken,
-            $apiUrl
-        );
-
-        return $token;
+        return AccessToken::fromArray($savedToken);
     }
 
     /**
      * Create an access token object from the salesforce response data
      *
-     * @param array $salesforceToken
+     * @param array $response
      * @return AccessToken
      */
-    public function createFromSalesforceResponse(array $salesforceToken)
+    public function createFromSalesforceResponse(array $response): AccessToken
     {
-
-        $dateIssued = Carbon::createFromTimestamp((int)($salesforceToken['issued_at'] / 1000));
+        if (is_int($response['issued_at'])) {
+            $dateIssued = Carbon::createFromTimestamp($response['issued_at']);
+        } else {
+            $dateIssued = new Carbon('now');
+        }
 
         $dateExpires = $dateIssued->copy()->addHour()->subMinutes(5);
 
-        $id = $this->getKeyIfSet($salesforceToken, 'id');
+        $tokenId = $this->getKeyIfSet($response, 'id');
 
-        $scope = explode(' ', $this->getKeyIfSet($salesforceToken, 'scope'));
+        $scope = explode(' ', $this->getKeyIfSet($response, 'scope'));
 
-        $refreshToken = $this->getKeyIfSet($salesforceToken, 'refresh_token');
+        $refreshToken = $this->getKeyIfSet($response, 'refresh_token');
 
-        $signature = $this->getKeyIfSet($salesforceToken, 'signature');
+        $signature = $this->getKeyIfSet($response, 'signature');
 
-        $tokenType = $this->getKeyIfSet($salesforceToken, 'token_type');
+        $tokenType = $this->getKeyIfSet($response, 'token_type');
 
-        $accessToken = $salesforceToken['access_token'];
+        $accessToken = $this->getKeyIfSet($response, 'access_token');
 
-        $apiUrl = $salesforceToken['instance_url'];
+        $apiUrl = $this->getKeyIfSet($response, 'instance_url');
 
-        $token = new AccessToken(
-            $id,
+        return new AccessToken(
+            $tokenId,
             $dateIssued,
             $dateExpires,
             $scope,
@@ -85,8 +65,6 @@ class AccessTokenGenerator {
             $accessToken,
             $apiUrl
         );
-
-        return $token;
     }
 
     /**
@@ -96,9 +74,6 @@ class AccessTokenGenerator {
      */
     private function getKeyIfSet($array, $key)
     {
-        if (isset($array[$key])) {
-            return $array[$key];
-        }
-        return null;
+        return $array[$key] ?? null;
     }
 }

@@ -19,10 +19,10 @@ class AccessTokenGeneratorTest extends TestCase
             'accessToken' => '',
             'apiUrl' => '',
         ]);
-        $tokenGenerator = new \Crunch\Salesforce\AccessTokenGenerator();
+        $tokenGenerator = new \Morloderex\Salesforce\AccessTokenGenerator();
         $token = $tokenGenerator->createFromJson($jsonToken);
 
-        $this->assertInstanceOf(\Crunch\Salesforce\AccessToken::class, $token, 'Token generated not an instance of AccessToken');
+        $this->assertInstanceOf(\Morloderex\Salesforce\AccessToken::class, $token, 'Token generated not an instance of AccessToken');
     }
 
     /** @test */
@@ -38,10 +38,10 @@ class AccessTokenGeneratorTest extends TestCase
             'access_token' => '',
             'instance_url' => '',
         ];
-        $tokenGenerator = new \Crunch\Salesforce\AccessTokenGenerator();
+        $tokenGenerator = new \Morloderex\Salesforce\AccessTokenGenerator();
         $token = $tokenGenerator->createFromSalesforceResponse($responseData);
 
-        $this->assertInstanceOf(\Crunch\Salesforce\AccessToken::class, $token, 'Token generated not an instance of AccessToken');
+        $this->assertInstanceOf(\Morloderex\Salesforce\AccessToken::class, $token, 'Token generated not an instance of AccessToken');
     }
 
     /** @test */
@@ -49,14 +49,14 @@ class AccessTokenGeneratorTest extends TestCase
     {
         $responseData = [
             'id' => '',
-            'issued_at' => '',
+            'issued_at' => time(),
             'access_token' => '',
             'instance_url' => '',
         ];
-        $tokenGenerator = new \Crunch\Salesforce\AccessTokenGenerator();
+        $tokenGenerator = new \Morloderex\Salesforce\AccessTokenGenerator();
         $token = $tokenGenerator->createFromSalesforceResponse($responseData);
 
-        $this->assertInstanceOf(\Crunch\Salesforce\AccessToken::class, $token, 'Token generated not an instance of AccessToken');
+        $this->assertInstanceOf(\Morloderex\Salesforce\AccessToken::class, $token, 'Token generated not an instance of AccessToken');
     }
 
     /** @test */
@@ -65,7 +65,7 @@ class AccessTokenGeneratorTest extends TestCase
         $time = time();
         $responseData = [
             'id' => '',
-            'issued_at' => $time * 1000, //salesforce uses milliseconds
+            'issued_at' => $time,
             'scope' => '',
             'token_type' => '',
             'refresh_token' => '',
@@ -73,7 +73,7 @@ class AccessTokenGeneratorTest extends TestCase
             'access_token' => '',
             'instance_url' => '',
         ];
-        $tokenGenerator = new \Crunch\Salesforce\AccessTokenGenerator();
+        $tokenGenerator = new \Morloderex\Salesforce\AccessTokenGenerator();
         $token = $tokenGenerator->createFromSalesforceResponse($responseData);
 
         $this->assertInstanceOf(\Carbon\Carbon::class, $token->getDateIssued(), 'Token issued date not a carbon instance');
@@ -97,7 +97,7 @@ class AccessTokenGeneratorTest extends TestCase
             'accessToken' => '',
             'apiUrl' => '',
         ]);
-        $tokenGenerator = new \Crunch\Salesforce\AccessTokenGenerator();
+        $tokenGenerator = new \Morloderex\Salesforce\AccessTokenGenerator();
         $token = $tokenGenerator->createFromJson($jsonToken);
 
         $this->assertInstanceOf(\Carbon\Carbon::class, $token->getDateIssued(), 'Token issued date not a carbon instance');
