@@ -26,8 +26,11 @@
     }
   },
   "autoload-dev": {
-    "classmap": [
-      "tests/TestCase.php"
+    "psr-4": {
+      "Morloderex\\Salesforce\\Tests\\": "tests/"
+    },
+    "files": [
+      "tests/bootstrap.php"
     ]
   },
   "minimum-stability": "stable"

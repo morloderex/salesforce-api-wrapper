@@ -1,32 +1,39 @@
 <?php
 
+namespace Morloderex\Salesforce\Tests;
+
 use \Mockery as m;
+use Morloderex\Salesforce\AccessToken;
+use Morloderex\Salesforce\AccessTokenGenerator;
+use Morloderex\Salesforce\Client;
+use Morloderex\Salesforce\ClientConfigInterface;
+use Psr\Http\Message\ResponseInterface;
 
-class ClientTest extends TestCase {
-
-    /** @test */
+class ClientTest extends TestCase
+{
+    /** @test **/
     public function client_can_be_instantiated()
     {
         $guzzle = m::mock('\GuzzleHttp\Client');
 
-        $sfClient = new \Morloderex\Salesforce\Client($this->getClientConfigMock(), $guzzle);
+        $sfClient = new Client($this->getClientConfigMock(), $guzzle, new AccessTokenGenerator);
 
-        $this->assertInstanceOf(\Morloderex\Salesforce\Client::class, $sfClient);
+        $this->assertInstanceOf(Client::class, $sfClient);
     }
 
     /** @test */
     public function client_can_be_statically_instantiated()
     {
-        $sfClient = \Morloderex\Salesforce\Client::create('loginUrl', 'clientId', 'clientSecret', 'redirectUrl');
+        $sfClient = Client::create('loginUrl', 'clientId', 'clientSecret', 'redirectUrl');
 
-        $this->assertInstanceOf(\Morloderex\Salesforce\Client::class, $sfClient);
+        $this->assertInstanceOf(Client::class, $sfClient);
     }
 
 
     /** @test */
     public function client_will_login()
     {
-        $response = m::mock('Psr\Http\Message\ResponseInterface');
+        $response = m::mock(ResponseInterface::class);
         $response->shouldReceive('getBody')->once()->andReturn('{
 "access_token": "00D2C0000000gq5!AQMAQEG0Dm3KzpyleUCsq3_NcvC4Dm4h_54SJ_Y4OlrTawlaz57dsrdFkUPHMj3pH7WNz7oMp1l49QooZsew3fqkj1p_oKRm",
 "instance_url": "https://API.salesforce.com",
@@ -38,9 +45,9 @@ class ClientTest extends TestCase {
         $response->shouldReceive('getStatusCode')->twice()->andReturn(200);
 
 
-        $guzzle = m::mock('\GuzzleHttp\Client');
+        $guzzle = m::mock(\GuzzleHttp\Client::class);
         //Make sure the url contains the passed in data
-        $guzzle->shouldReceive('post')->with(stringContainsInOrder('token'), [
+        $guzzle->shouldReceive('request')->with('post', stringContainsInOrder('token'), [
             'headers'     => ['Accept' => 'application/json'],
             'form_params' => [
                 'client_id'     => 'client_id',
@@ -52,7 +59,7 @@ class ClientTest extends TestCase {
         ])->once()->andReturn($response);
 
 
-        $sfClient = new \Morloderex\Salesforce\Client($this->getClientConfigMock(), $guzzle);
+        $sfClient = new Client($this->getClientConfigMock(), $guzzle, new AccessTokenGenerator());
         $sfClient->setAccessToken($this->getAccessTokenMock());
         $sfClient->login('superuser', 'superpasswd');
     }
@@ -71,7 +78,7 @@ class ClientTest extends TestCase {
         $guzzle->shouldReceive('get')->with(stringContainsInOrder('Test', $recordId, 'field1,field2') , \Mockery::type('array'))->once()->andReturn($response);
 
 
-        $sfClient = new \Morloderex\Salesforce\Client($this->getClientConfigMock(), $guzzle);
+        $sfClient = new Client($this->getClientConfigMock(), $guzzle, new AccessTokenGenerator());
         $sfClient->setAccessToken($this->getAccessTokenMock());
 
 
@@ -94,7 +101,7 @@ class ClientTest extends TestCase {
         $guzzle->shouldReceive('get')->with(stringContainsInOrder('Test', $recordId) , \Mockery::type('array'))->once()->andReturn($response);
 
 
-        $sfClient = new \Morloderex\Salesforce\Client($this->getClientConfigMock(), $guzzle);
+        $sfClient = new Client($this->getClientConfigMock(), $guzzle, new AccessTokenGenerator());
         $sfClient->setAccessToken($this->getAccessTokenMock());
 
 
@@ -112,10 +119,10 @@ class ClientTest extends TestCase {
 
         $guzzle = m::mock('\GuzzleHttp\Client');
         //Make sure the url contains the passed in data
-        $guzzle->shouldReceive('get')->with(stringContainsInOrder('SELECT+Name+FROM+Lead+LIMIT+10') , \Mockery::type('array'))->once()->andReturn($response);
+        $guzzle->shouldReceive('request')->with('get', m::type('string') , \Mockery::type('array'))->once()->andReturn($response);
 
 
-        $sfClient = new \Morloderex\Salesforce\Client($this->getClientConfigMock(), $guzzle);
+        $sfClient = new Client($this->getClientConfigMock(), $guzzle, new AccessTokenGenerator());
         $sfClient->setAccessToken($this->getAccessTokenMock());
 
 
@@ -133,10 +140,10 @@ class ClientTest extends TestCase {
 
         $guzzle = m::mock('\GuzzleHttp\Client');
         //Make sure the url contains the passed in data
-        $guzzle->shouldReceive('post')->with(containsString('Test') , \Mockery::type('array'))->once()->andReturn($response);
+        $guzzle->shouldReceive('request')->with('post', m::type('string'), \Mockery::type('array'))->once()->andReturn($response);
 
 
-        $sfClient = new \Morloderex\Salesforce\Client($this->getClientConfigMock(), $guzzle);
+        $sfClient = new Client($this->getClientConfigMock(), $guzzle, new AccessTokenGenerator());
         $sfClient->setAccessToken($this->getAccessTokenMock());
 
 
@@ -151,13 +158,14 @@ class ClientTest extends TestCase {
         $recordId = 'abc' . rand(1000, 9999999);
 
         $response = m::mock('Psr\Http\Message\ResponseInterface');
+        $response->shouldReceive('getBody')->once()->andReturn('{}');
 
         $guzzle = m::mock('\GuzzleHttp\Client');
         //Make sure the url contains the passed in data
-        $guzzle->shouldReceive('patch')->with(stringContainsInOrder('Test', $recordId) , \Mockery::type('array'))->once()->andReturn($response);
+        $guzzle->shouldReceive('request')->with('patch', stringContainsInOrder('Test', $recordId) , \Mockery::type('array'))->once()->andReturn($response);
 
 
-        $sfClient = new \Morloderex\Salesforce\Client($this->getClientConfigMock(), $guzzle);
+        $sfClient = new Client($this->getClientConfigMock(), $guzzle, new AccessTokenGenerator());
         $sfClient->setAccessToken($this->getAccessTokenMock());
 
 
@@ -172,14 +180,14 @@ class ClientTest extends TestCase {
         $recordId = 'abc' . rand(1000, 9999999);
 
         $response = m::mock('Psr\Http\Message\ResponseInterface');
+        $response->shouldReceive('getBody')->andReturn('{}');
 
 
         $guzzle = m::mock('\GuzzleHttp\Client');
         //Make sure the url contains the passed in data
-        $guzzle->shouldReceive('delete')->with(stringContainsInOrder('Test', $recordId), \Mockery::type('array'))->once()->andReturn($response);
+        $guzzle->shouldReceive('request')->with('delete', m::type('string'), \Mockery::type('array'))->once()->andReturn($response);
 
-
-        $sfClient = new \Morloderex\Salesforce\Client($this->getClientConfigMock(), $guzzle);
+        $sfClient = new Client($this->getClientConfigMock(), $guzzle, new AccessTokenGenerator());
         $sfClient->setAccessToken($this->getAccessTokenMock());
 
 
@@ -191,22 +199,27 @@ class ClientTest extends TestCase {
     /** @test */
     public function client_can_complete_auth_process()
     {
-        $recordId = 'abc' . rand(1000, 9999999);
-
         $response = m::mock('Psr\Http\Message\ResponseInterface');
-        $response->shouldReceive('getBody')->once()->andReturn(json_encode(['id' => $recordId]));
+        $response->shouldReceive('getBody')->once()->andReturn(json_encode([
+            'issued_at' => time(),
+            'id' => 'some-fake-id',
+            'access_token' => 'some-fake-token',
+            'instance_url' => 'some-instance',
+            'signature' => 'string'
+        ]));
 
 
         $guzzle = m::mock('\GuzzleHttp\Client');
         //Make sure the url contains the passed in data
-        $guzzle->shouldReceive('post')->with(stringContainsInOrder('services/oauth2/token'), \Mockery::type('array'))->once()->andReturn($response);
+        $guzzle->shouldReceive('request')->with('post', stringContainsInOrder('services/oauth2/token'), \Mockery::type('array'))->once()->andReturn($response);
 
+        $sfClient = new Client($this->getClientConfigMock(), $guzzle, new AccessTokenGenerator());
 
-        $sfClient = new \Morloderex\Salesforce\Client($this->getClientConfigMock(), $guzzle);
-        $sfClient->setAccessToken($this->getAccessTokenMock());
+        $response = $sfClient->authorizeConfirm('authCode');
 
+        $this->assertNotNull($sfClient->getAccessToken());
 
-        $sfClient->authorizeConfirm('authCode', 'redirectUrl');
+        $this->assertInstanceOf(AccessToken::class, $response);
     }
 
     /** @test */
@@ -220,15 +233,17 @@ class ClientTest extends TestCase {
 
         $guzzle = m::mock('\GuzzleHttp\Client');
         //Make sure the url contains the passed in data
-        $guzzle->shouldReceive('post')->with(stringContainsInOrder('services/oauth2/token'), \Mockery::type('array'))->once()->andReturn($response);
+        $guzzle->shouldReceive('request')->with('post', stringContainsInOrder('services/oauth2/token'), \Mockery::type('array'))->once()->andReturn($response);
 
 
-        $sfClient = new \Morloderex\Salesforce\Client($this->getClientConfigMock(), $guzzle);
+        $sfClient = new Client($this->getClientConfigMock(), $guzzle, new AccessTokenGenerator());
         $accessToken = $this->getAccessTokenMock();
-        $accessToken->shouldReceive('updateFromSalesforceRefresh');
+        $accessToken->shouldReceive('refresh')->once()->andReturnSelf();
         $sfClient->setAccessToken($accessToken);
 
-        $sfClient->refreshToken();
+        $response = $sfClient->refreshToken();
+        $this->assertInstanceOf(AccessToken::class, $response);
+
     }
 
     /** @test */
@@ -236,14 +251,12 @@ class ClientTest extends TestCase {
     {
         $guzzle = m::mock('\GuzzleHttp\Client');
 
-
-        $sfClient = new \Morloderex\Salesforce\Client($this->getClientConfigMock(), $guzzle);
+        $sfClient = new Client($this->getClientConfigMock(), $guzzle, new AccessTokenGenerator());
         $sfClient->setAccessToken($this->getAccessTokenMock());
 
+        $url = $sfClient->getLoginUrl();
 
-        $url = $sfClient->getLoginUrl('redirectUrl');
-
-        $this->assertNotFalse(strpos($url, 'redirectUrl'));
+        $this->assertEquals('http://login.example.comservices/oauth2/authorize?client_id=client_id&redirect_uri=https%3A%2F%2Fexample.dk%2Fredirect&response_type=code&grant_type=authorization_code', $url);
     }
 
     /**
@@ -262,16 +275,21 @@ class ClientTest extends TestCase {
         $guzzle = m::mock('\GuzzleHttp\Client');
         $guzzleException = m::mock('GuzzleHttp\Exception\RequestException');
         $guzzleException->shouldReceive('getResponse')->andReturn($errorResponse);
+        $guzzleException->shouldReceive('hasResponse')->andReturn(true);
 
         //Make sure the url contains the passed in data
-        $guzzle->shouldReceive('post')->with(stringContainsInOrder('services/oauth2/token'), \Mockery::type('array'))->once()->andThrow($guzzleException);
+        $guzzle->shouldReceive('request')->with(
+            m::type('string'),
+            m::type('string'),
+            m::type('array')
+        )->once()->andThrow($guzzleException);
 
         //Setup the client
-        $sfClient = new \Morloderex\Salesforce\Client($this->getClientConfigMock(), $guzzle);
+        $sfClient = new Client($this->getClientConfigMock(), $guzzle, new AccessTokenGenerator);
         $sfClient->setAccessToken($this->getAccessTokenMock());
 
         //Try the auth flow - this should generate an exception
-        $sfClient->authorizeConfirm('authCode', 'redirectUrl');
+        $sfClient->authorizeConfirm('authCode');
     }
 
 
@@ -281,20 +299,21 @@ class ClientTest extends TestCase {
      */
     private function getClientConfigMock()
     {
-        $config = m::mock('Morloderex\Salesforce\ClientConfigInterface');
+        $config = m::mock(ClientConfigInterface::class);
         $config->shouldReceive('getLoginUrl')->andReturn('http://login.example.com');
         $config->shouldReceive('getClientId')->andReturn('client_id');
         $config->shouldReceive('getClientSecret')->andReturn('client_secret');
         $config->shouldReceive('getVersion')->andReturn('v37.0');
+        $config->shouldReceive('getRedirectUrl')->andReturn('https://example.dk/redirect');
         return $config;
     }
 
     private function getAccessTokenMock()
     {
-        $accessToken = m::mock('Morloderex\Salesforce\AccessToken');
-        $accessToken->shouldReceive('getApiUrl')->andReturn('http://api.example.com');
-        $accessToken->shouldReceive('getAccessToken')->andReturn('123456789abcdefghijk');
-        $accessToken->shouldReceive('getRefreshToken')->andReturn('refresh123456789abcdefghijk');
+        $accessToken = m::mock(AccessToken::class);
+        $accessToken->shouldReceive('apiUrl')->andReturn('http://api.example.com');
+        $accessToken->shouldReceive('accessToken')->andReturn('123456789abcdefghijk');
+        $accessToken->shouldReceive('refreshToken')->andReturn('refresh123456789abcdefghijk');
         return $accessToken;
     }
 }

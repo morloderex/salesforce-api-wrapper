@@ -1,9 +1,8 @@
 <?php
 
-use \Mockery as m;
+namespace Morloderex\Salesforce\Tests;
 
 class ClientConfigTest extends TestCase {
-
 
     /** @test */
     public function client_config_can_be_instantiated()
@@ -24,5 +23,4 @@ class ClientConfigTest extends TestCase {
         $this->assertEquals('clientSecret', $sfClientConfig->getClientSecret());
         $this->assertEquals('v37.0', $sfClientConfig->getVersion());
     }
-
 }

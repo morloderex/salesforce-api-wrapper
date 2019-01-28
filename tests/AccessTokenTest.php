@@ -1,4 +1,6 @@
-<?php 
+<?php
+
+namespace Morloderex\Salesforce\Tests;
 
 class AccessTokenTest extends TestCase {
 
@@ -12,8 +14,7 @@ class AccessTokenTest extends TestCase {
             'abc123',
             $issueDate,
             $expiryDate,
-            'scopes',
-            'type',
+            ['scopes'],
             'refresh-token',
             'signature',
             'access-token',
@@ -22,13 +23,10 @@ class AccessTokenTest extends TestCase {
 
         $this->assertInstanceOf(\Morloderex\Salesforce\AccessToken::class, $token);
 
-        $this->assertEquals('access-token', $token->getAccessToken());
-        $this->assertEquals('refresh-token', $token->getRefreshToken());
-        $this->assertEquals('http://example.com', $token->getApiUrl());
-        $this->assertEquals('scopes', $token->getScope());
-
-        $this->assertInstanceOf(\Carbon\Carbon::class, $token->getDateExpires());
-        $this->assertInstanceOf(\Carbon\Carbon::class, $token->getDateIssued());
+        $this->assertEquals('access-token', $token->accessToken());
+        $this->assertEquals('refresh-token', $token->refreshToken());
+        $this->assertEquals('http://example.com', $token->apiUrl());
+        $this->assertEquals(['scopes'], $token->scopes());
     }
 
     /** @test */
@@ -38,21 +36,20 @@ class AccessTokenTest extends TestCase {
             'abc123',
             \Carbon\Carbon::now(),
             \Carbon\Carbon::now()->addHour(),
-            'scopes',
-            'type',
+            ['scopes'],
             'refresh-token',
             'signature',
             'access-token',
             'http://example.com'
         );
+
         $this->assertFalse($token1->needsRefresh());
 
         $token2 = new \Morloderex\Salesforce\AccessToken(
             'abc123',
             \Carbon\Carbon::now()->subHours(2),
             \Carbon\Carbon::now()->subHour(),
-            'scopes',
-            'type',
+            ['scopes'],
             'refresh-token',
             'signature',
             'access-token',
@@ -68,19 +65,15 @@ class AccessTokenTest extends TestCase {
             'abc123',
             \Carbon\Carbon::now(),
             \Carbon\Carbon::now()->addHour(),
-            'scopes',
-            'type',
+            ['scopes'],
             'refresh-token',
             'signature',
             'access-token',
             'http://example.com'
         );
 
-        $this->isJson($token->toJson());
-        $this->isJson((string)$token, 'Token casts to a json string');
-
+        $this->assertJsonStringEqualsJsonString('{"tokenId": }', $token->toJson(), 'Token casts to a json string');
     }
-
 
     /** @test */
     public function updates_correctly()
@@ -89,8 +82,7 @@ class AccessTokenTest extends TestCase {
             'abc123',
             \Carbon\Carbon::now(),
             \Carbon\Carbon::now()->addHour(),
-            'scopes',
-            'type',
+            ['scopes'],
             'refresh-token',
             'signature',
             'access-token',
@@ -100,17 +92,15 @@ class AccessTokenTest extends TestCase {
 
         $time = 1429281826;
 
-        $token->updateFromSalesforceRefresh([
-            'issued_at' => $time * 1000,
+        $token->refresh([
+            'issued_at' => $time,
             'signature' => 'new-signature',
             'access_token' => 'new-access-token'
         ]);
 
-        $this->assertEquals('new-access-token', $token->getAccessToken(), 'access token was updated');
+        $this->assertEquals('new-access-token', $token->getAccessToken(), 'access token was not updated');
         $this->assertInstanceOf(\Carbon\Carbon::class, $token->getDateExpires());
         $this->assertInstanceOf(\Carbon\Carbon::class, $token->getDateIssued());
-
-        $this->assertEquals($time, $token->getDateIssued()->timestamp, 'Timestamp saved and converted correctly');
-
+        $this->assertEquals($time, $token->getDateIssued()->timestamp, 'Timestamp saved and converted incorrectly');
     }
 }

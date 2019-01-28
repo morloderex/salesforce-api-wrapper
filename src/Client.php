@@ -12,6 +12,7 @@ class Client
      * @var ClientConfigInterface
      */
     private $clientConfig;
+
     /**
      * @var AccessToken|null
      */
@@ -66,7 +67,7 @@ class Client
         string $clientId,
         string $clientSecret,
         string $redirectUrl,
-        string $version
+        string $version = 'v37'
     ): Client {
         return new self(
             new ClientConfig($salesforceLoginUrl, $clientId, $clientSecret, $redirectUrl, $version),
@@ -83,7 +84,7 @@ class Client
      * @param string $user
      * @param string $password
      *
-     * @return \Morloderex\Salesforce\AccessToken
+     * @return AccessToken
      * @throws \Morloderex\Salesforce\Exceptions\AuthenticationException
      * @throws \Morloderex\Salesforce\Exceptions\RequestException
      */
@@ -180,22 +181,25 @@ class Client
      * @param string $type The object type to update
      * @param string $objectId The ID of the record to update
      * @param array $data The data to put into the record
-     * @return array
+     * @return boolean
      *
      * @throws \Morloderex\Salesforce\Exceptions\AuthenticationException
      * @throws \Morloderex\Salesforce\Exceptions\RequestException
      */
-    public function updateRecord(string $type, string $objectId, array $data): array
+    public function updateRecord(string $type, string $objectId, array $data): bool
     {
         $url = $this->generateUrl('sobjects/'. $type . '/' . $objectId);
 
-        return $this->makeRequest('patch', $url, [
+
+        $this->makeRequest('patch', $url, [
             'headers' => [
                 'Content-Type' => 'application/json',
                 'Authorization' => $this->getAuthHeader()
             ],
             'json'    => json_encode($data)
         ]);
+
+        return true;
     }
 
     /**
@@ -248,10 +252,10 @@ class Client
      * Complete the oauth process by confirming the code and returning an access token
      *
      * @param $code
-     * @return array
+     * @return AccessToken
      * @throws \Exception
      */
-    public function authorizeConfirm(string $code): array
+    public function authorizeConfirm(string $code): AccessToken
     {
         $url = $this->clientConfig->getLoginUrl() . 'services/oauth2/token';
 
@@ -265,11 +269,21 @@ class Client
 
         $response = $this->makeRequest('post', $url, ['form_params' => $data]);
 
+        $accessToken = $this->tokenGenerator->createFromSalesforceResponse($response);
+
         $this->setAccessToken(
-            $this->tokenGenerator->createFromSalesforceResponse($response)
+            $accessToken
         );
 
-        return $response;
+        return $accessToken;
+    }
+
+    /**
+     * @return AccessToken|null
+     */
+    public function getAccessToken(): ?AccessToken
+    {
+        return $this->accessToken;
     }
 
     /**
@@ -303,7 +317,7 @@ class Client
             'grant_type'    => 'refresh_token',
             'client_id'     => $this->clientConfig->getClientId(),
             'client_secret' => $this->clientConfig->getClientSecret(),
-            'refresh_token' => $this->accessToken->getRefreshToken()
+            'refresh_token' => $this->accessToken->accessToken()
         ];
 
         $response = $this->makeRequest(
@@ -312,7 +326,10 @@ class Client
             ['form_params' => $data]
         );
 
-        return $this->accessToken->refresh($response);
+        $accessToken = $this->accessToken->refresh($response);
+        $this->setAccessToken($accessToken);
+
+        return $accessToken;
     }
 
     /**
@@ -322,7 +339,7 @@ class Client
     public function setAccessToken(AccessToken $accessToken): self
     {
         $this->accessToken = $accessToken;
-        $this->baseUrl     = $accessToken->getApiUrl();
+        $this->baseUrl     = $accessToken->apiUrl();
 
         return $this;
     }
@@ -340,7 +357,7 @@ class Client
         try {
             $response = $this->guzzleClient->request($method, $url, $data);
 
-            return \GuzzleHttp\json_decode((string) $response->getBody());
+            return \GuzzleHttp\json_decode((string) $response->getBody(), true);
         } catch (GuzzleException $e) {
             if (false === $e->hasResponse()) {
                 throw RequestException::withoutResponseError($e->getMessage(), $e, $e->getCode());

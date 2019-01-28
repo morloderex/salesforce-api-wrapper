@@ -48,8 +48,6 @@ class AccessTokenGenerator implements AccessTokenGeneratorInterface
 
         $signature = $this->getKeyIfSet($response, 'signature');
 
-        $tokenType = $this->getKeyIfSet($response, 'token_type');
-
         $accessToken = $this->getKeyIfSet($response, 'access_token');
 
         $apiUrl = $this->getKeyIfSet($response, 'instance_url');
@@ -59,7 +57,6 @@ class AccessTokenGenerator implements AccessTokenGeneratorInterface
             $dateIssued,
             $dateExpires,
             $scope,
-            $tokenType,
             $refreshToken,
             $signature,
             $accessToken,

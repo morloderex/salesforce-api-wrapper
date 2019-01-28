@@ -56,7 +56,6 @@ class AccessToken
      * @param \Carbon\Carbon $dateIssued
      * @param \Carbon\Carbon $dateExpires
      * @param array $scope
-     * @param string $tokenType
      * @param string $refreshToken
      * @param string $signature
      * @param string $accessToken
@@ -66,9 +65,8 @@ class AccessToken
         string $tokenId,
         Carbon $dateIssued,
         Carbon $dateExpires,
-        array $scope,
-        string $tokenType,
-        string $refreshToken,
+        ?array $scope,
+        ?string $refreshToken,
         string $signature,
         string $accessToken,
         string $apiUrl
@@ -77,7 +75,6 @@ class AccessToken
         $this->dateIssued = $dateIssued;
         $this->dateExpires = $dateExpires;
         $this->scope = $scope;
-        $this->tokenType = $tokenType;
         $this->refreshToken = $refreshToken;
         $this->signature = $signature;
         $this->accessToken = $accessToken;
@@ -121,7 +118,6 @@ class AccessToken
             'dateIssued' => $this->dateIssued->format('Y-m-d H:i:s'),
             'dateExpires' => $this->dateExpires->format('Y-m-d H:i:s'),
             'scope' => $this->scope,
-            'tokenType' => $this->tokenType,
             'refreshToken' => $this->refreshToken,
             'signature' => $this->signature,
             'accessToken' => $this->accessToken,
@@ -168,7 +164,7 @@ class AccessToken
     /**
      * @return Carbon
      */
-    public function getDateExpires(): Carbon
+    public function dateExpires(): Carbon
     {
         return $this->dateExpires;
     }
@@ -176,15 +172,15 @@ class AccessToken
     /**
      * @return Carbon
      */
-    public function getDateIssued(): Carbon
+    public function dateIssued(): Carbon
     {
         return $this->dateIssued;
     }
 
     /**
-     * @return string
+     * @return null|string
      */
-    public function getRefreshToken(): string
+    public function refreshToken(): string
     {
         return $this->refreshToken;
     }
@@ -200,7 +196,7 @@ class AccessToken
     /**
      * @return array
      */
-    public function getScopes(): array
+    public function scopes(): array
     {
         return $this->scope;
     }
@@ -208,7 +204,7 @@ class AccessToken
     /**
      * @return string
      */
-    public function getApiUrl(): string
+    public function apiUrl(): string
     {
         return $this->apiUrl;
     }
@@ -224,15 +220,7 @@ class AccessToken
     /**
      * @return string
      */
-    public function getTokenType(): string
-    {
-        return $this->tokenType;
-    }
-
-    /**
-     * @return string
-     */
-    public function getSignature(): string
+    public function signature(): string
     {
         return $this->signature;
     }

@@ -1,10 +1,11 @@
 <?php
 
+namespace Morloderex\Salesforce\Tests;
+
 use \Mockery as m;
 
 class LocalFileStoreTest extends TestCase
 {
-
     /** @test */
     public function file_store_can_be_instantiated()
     {
@@ -15,6 +16,4 @@ class LocalFileStoreTest extends TestCase
 
         $this->assertInstanceOf(\Morloderex\Salesforce\TokenStore\LocalFile::class, $fileStore);
     }
-
-
 }

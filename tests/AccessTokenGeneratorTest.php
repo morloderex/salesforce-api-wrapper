@@ -1,10 +1,9 @@
 <?php
 
-use \Mockery as m;
+namespace Morloderex\Salesforce\Tests;
 
 class AccessTokenGeneratorTest extends TestCase
 {
-
     /** @test */
     public function token_gets_generated_from_json()
     {
@@ -104,5 +103,4 @@ class AccessTokenGeneratorTest extends TestCase
         $this->assertEquals($issueDate, $token->getDateIssued()->format('Y-m-d H:i:s'), 'Token issue timestamp doesnt match');
         $this->assertEquals($expiryDate, $token->getDateExpires()->format('Y-m-d H:i:s'), 'Token expiry time not 1 hour after creation');
     }
-
 }
