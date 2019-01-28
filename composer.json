@@ -1,5 +1,5 @@
 {
-  "name": "crunch-accounting/salesforce-api",
+  "name": "molroderex/salesforce-api",
   "description": "A library for interacting with the Salesforce REST API and managing the OAuth flow",
   "keywords": ["salesforce", "rest", "api", "oauth2"],
   "homepage": "https://github.com/crunch-accounting/salesforce-api-php-wrapper",
