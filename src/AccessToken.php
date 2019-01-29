@@ -29,11 +29,6 @@ class AccessToken
     /**
      * @var string
      */
-    private $tokenType;
-
-    /**
-     * @var string
-     */
     private $refreshToken;
 
     /**
@@ -145,7 +140,6 @@ class AccessToken
             Carbon::parse($array['dateIssued']),
             Carbon::parse($array['dateExpires']),
             $array['scope'] ?? [],
-            $array['tokenType'] ?? '',
             $array['refreshToken'] ?? '',
             $array['signature'] ?? '',
             $array['accessToken'] ?? '',
