@@ -357,6 +357,10 @@ class Client
         try {
             $response = $this->guzzleClient->request($method, $url, $data);
 
+            if (204 === $response->getStatusCode()) {
+                return [];
+            }
+
             return \GuzzleHttp\json_decode((string) $response->getBody(), true);
         } catch (GuzzleException $e) {
             if (false === $e->hasResponse()) {
