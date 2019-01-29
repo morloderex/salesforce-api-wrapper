@@ -188,13 +188,12 @@ class Client
     {
         $url = $this->generateUrl('sobjects/'. $type . '/' . $objectId);
 
-
         $this->makeRequest('patch', $url, [
             'headers' => [
                 'Content-Type' => 'application/json',
                 'Authorization' => $this->getAuthHeader()
             ],
-            'json'    => json_encode($data)
+            'body'    => json_encode($data)
         ]);
 
         return true;
@@ -221,7 +220,7 @@ class Client
                     'Content-Type' => 'application/json',
                     'Authorization' => $this->getAuthHeader()
                 ],
-                'json'    => json_encode($data)
+                'body'    => json_encode($data)
             ]
         );
 
