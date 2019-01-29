@@ -257,7 +257,7 @@ class Client
      */
     public function authorizeConfirm(string $code, string $redirectUrl): AccessToken
     {
-        $url = $this->clientConfig->getLoginUrl() . 'services/oauth2/token';
+        $url = rtrim($this->clientConfig->getLoginUrl(), '/') . '/services/oauth2/token';
 
         $data = [
             'grant_type'    => 'authorization_code',
@@ -301,7 +301,7 @@ class Client
             'grant_type'    => 'authorization_code'
         ];
 
-        return $this->clientConfig->getLoginUrl() . 'services/oauth2/authorize?' . http_build_query($params);
+        return rtrim($this->clientConfig->getLoginUrl(), '/') . '/services/oauth2/authorize?' . http_build_query($params);
     }
 
     /**
@@ -312,7 +312,7 @@ class Client
      */
     public function refreshToken(): AccessToken
     {
-        $url = $this->clientConfig->getLoginUrl() . 'services/oauth2/token';
+        $url = rtrim($this->clientConfig->getLoginUrl(), '/') . '/services/oauth2/token';
 
         $data = [
             'grant_type'    => 'refresh_token',
