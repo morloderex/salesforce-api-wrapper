@@ -215,7 +215,7 @@ class ClientTest extends TestCase
 
         $sfClient = new Client($this->getClientConfigMock(), $guzzle, new AccessTokenGenerator());
 
-        $response = $sfClient->authorizeConfirm('authCode');
+        $response = $sfClient->authorizeConfirm('authCode', 'redirect');
 
         $this->assertNotNull($sfClient->getAccessToken());
 
@@ -304,7 +304,6 @@ class ClientTest extends TestCase
         $config->shouldReceive('getClientId')->andReturn('client_id');
         $config->shouldReceive('getClientSecret')->andReturn('client_secret');
         $config->shouldReceive('getVersion')->andReturn('v37.0');
-        $config->shouldReceive('getRedirectUrl')->andReturn('https://example.dk/redirect');
         return $config;
     }
 

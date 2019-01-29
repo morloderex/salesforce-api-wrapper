@@ -57,7 +57,6 @@ class Client
      * @param string $salesforceLoginUrl
      * @param string $clientId
      * @param string $clientSecret
-     * @param string $redirectUrl
      * @param string $version
      *
      * @return Client
@@ -66,11 +65,10 @@ class Client
         string $salesforceLoginUrl,
         string $clientId,
         string $clientSecret,
-        string $redirectUrl,
         string $version = 'v37'
     ): Client {
         return new self(
-            new ClientConfig($salesforceLoginUrl, $clientId, $clientSecret, $redirectUrl, $version),
+            new ClientConfig($salesforceLoginUrl, $clientId, $clientSecret, $version),
             new \GuzzleHttp\Client,
             new AccessTokenGenerator
         );
@@ -251,11 +249,13 @@ class Client
     /**
      * Complete the oauth process by confirming the code and returning an access token
      *
-     * @param $code
+     * @param string $code
+     * @param string $redirectUrl
      * @return AccessToken
-     * @throws \Exception
+     * @throws \Morloderex\Salesforce\Exceptions\AuthenticationException
+     * @throws \Morloderex\Salesforce\Exceptions\RequestException
      */
-    public function authorizeConfirm(string $code): AccessToken
+    public function authorizeConfirm(string $code, string $redirectUrl): AccessToken
     {
         $url = $this->clientConfig->getLoginUrl() . 'services/oauth2/token';
 
@@ -264,7 +264,7 @@ class Client
             'client_id'     => $this->clientConfig->getClientId(),
             'client_secret' => $this->clientConfig->getClientSecret(),
             'code'          => $code,
-            'redirect_uri'  => $this->clientConfig->getRedirectUrl()
+            'redirect_uri'  => $redirectUrl
         ];
 
         $response = $this->makeRequest('post', $url, ['form_params' => $data]);
@@ -289,13 +289,14 @@ class Client
     /**
      * Get the url to redirect users to when setting up a salesforce access token
      *
+     * @param string $redirectUrl
      * @return string
      */
-    public function getLoginUrl(): string
+    public function getLoginUrl(string $redirectUrl): string
     {
         $params = [
             'client_id'     => $this->clientConfig->getClientId(),
-            'redirect_uri'  => $this->clientConfig->getRedirectUrl(),
+            'redirect_uri'  => $redirectUrl,
             'response_type' => 'code',
             'grant_type'    => 'authorization_code'
         ];

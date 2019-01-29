@@ -24,9 +24,4 @@ interface ClientConfigInterface
      * @return string
      */
     public function getVersion(): string;
-
-    /**
-     * @return string
-     */
-    public function getRedirectUrl(): string;
 }

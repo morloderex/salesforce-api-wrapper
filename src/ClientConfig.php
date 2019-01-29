@@ -33,29 +33,18 @@ class ClientConfig implements ClientConfigInterface
      * @param string $loginUrl
      * @param string $clientId
      * @param string $clientSecret
-     * @param string $redirectUrl
      * @param string $version
      */
     public function __construct(
         string $loginUrl,
         string $clientId,
         string $clientSecret,
-        string $redirectUrl,
         string $version = 'v37.0'
     ) {
         $this->loginUrl     = $loginUrl;
         $this->clientId     = $clientId;
         $this->clientSecret = $clientSecret;
         $this->version      = $version;
-        $this->redirectUrl  = $redirectUrl;
-    }
-
-    /**
-     * @return string
-     */
-    public function getRedirectUrl(): string
-    {
-        return $this->redirectUrl;
     }
 
     /**
